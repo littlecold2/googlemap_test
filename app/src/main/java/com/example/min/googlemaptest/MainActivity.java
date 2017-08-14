@@ -85,8 +85,6 @@ public class MainActivity extends AppCompatActivity
         map.addMarker(markerOptions).setDraggable(true);
         // 함수나 클래스로 만드려면 이렇게 하는게 나을 듯
         */
-        // 뭐지
-
         final Marker a = map.addMarker(new MarkerOptions()
                 .position(M1)
                 .draggable(true)
