@@ -11,8 +11,9 @@ import android.widget.TextView;
  */
 
 public class Urltextview extends AppCompatActivity {
-   // public static Context mContext;
+    // public static Context mContext;
     TextView tv;
+
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.downloadview);
@@ -21,10 +22,5 @@ public class Urltextview extends AppCompatActivity {
         String uText = intent.getStringExtra("url");
         tv.setText(uText);
 
-    }
-
-    public void setStr(String str)
-    {
-        tv.setText(str);
     }
 }

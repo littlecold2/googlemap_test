@@ -2,6 +2,7 @@ package com.example.min.googlemaptest;
 
 import android.app.FragmentManager;
 import android.content.Intent;
+import android.graphics.Color;
 import android.os.AsyncTask;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -14,9 +15,13 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapFragment;
 import com.google.android.gms.maps.OnMapReadyCallback;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.maps.model.PolylineOptions;
+
+import org.json.JSONObject;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -24,7 +29,10 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 
 import javax.net.ssl.HttpsURLConnection;
 
@@ -35,11 +43,14 @@ import javax.net.ssl.HttpsURLConnection;
 public class MainActivity extends AppCompatActivity
         implements OnMapReadyCallback {
 
+    private GoogleMap map;
     ArrayList<LatLng> MarkerPoints; // 나중에 쓰기
+    //로마
+//    LatLng M2 = new LatLng(41.86, 12.97); // 경도, 위도
+//    LatLng M1 = new LatLng(41.85, 12.46);
+    //서울
     LatLng M1 = new LatLng(37.56, 126.97);
-    LatLng M2 = new LatLng(37.55, 126.96);
-   // Urltextview urlview;
-    String fetchedtext;
+    LatLng M2 = new LatLng(37.55, 126.47);
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -50,33 +61,39 @@ public class MainActivity extends AppCompatActivity
         MapFragment mapFragment = (MapFragment)fragmentManager
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
-        String url = getUrl(M1,M2);
-        fetchUrl fUrl = new fetchUrl();
-        fUrl.execute(url);
-        //fetchedtext = fetchUrl(url);
 
-        //Log.d("iii", "뭐지");
-      //  urlview = new Urltextview();
-     //   urlview = (Urltextview) getApplicationContext();  // Context를 해당 Class로 캐스팅해줘야 NullPointerException이 발생하지 않습니다.
-//        ((Urltextview)Urltextview.mContext).setStr("aaaaa");
-
+        MarkerPoints = new ArrayList<>();
+        MarkerPoints.clear();
+//        String url = getUrl(M1,M2);
+//        fetchUrl fUrl = new fetchUrl();
+//        fUrl.execute(url);
+//
 
     }
     private void pickMark(final GoogleMap map, final LatLng LL)
     {
+
             MarkerOptions markerOptions = new MarkerOptions();
             markerOptions.position(LL);
-            markerOptions.title("title");
+            markerOptions.title(Double.toString(LL.latitude)+","+Double.toString(LL.longitude));
             markerOptions.snippet("snippet");
             markerOptions.draggable(true);
-            map.addMarker(markerOptions).setDraggable(true);
 
+        //색 다르게인가?
+        if(MarkerPoints.size()==0)
+        {
+            markerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN));
+        }
+        else if (MarkerPoints.size() == 1) {
+            markerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED));
+        }
+        map.addMarker(markerOptions).setDraggable(true);
+        MarkerPoints.add(LL);
     } // pickMark
     @Override
-    public void onMapReady(final GoogleMap map) {
-
-
-        pickMark(map,M2);
+    public void onMapReady(final GoogleMap gMap) {
+        map = gMap;
+        //pickMark(map,M2);
 /*        MarkerOptions markerOptions = new MarkerOptions();
         markerOptions.position(SEOUL);
         markerOptions.title("서울");
@@ -93,11 +110,31 @@ public class MainActivity extends AppCompatActivity
         a.setDraggable(true);
         //  위에 말풍선 표시한거 보여주도록 호출
         a.showInfoWindow();
+
         // 맵 클릭 리스너
         map.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
             @Override
             public void onMapClick(LatLng latLng) {
+                if(MarkerPoints.size()>1){
+                    MarkerPoints.clear();
+                    map.clear();
+                }
                 pickMark(map,latLng);
+                if (MarkerPoints.size() >= 2) {
+                    LatLng origin = MarkerPoints.get(0);
+                    LatLng dest = MarkerPoints.get(1);
+
+                    // Getting URL to the Google Directions API
+                    String url = getUrl(origin, dest);
+                    Log.d("onMapClick", url.toString());
+                    fetchUrl FetchUrl = new fetchUrl();
+
+                    // Start downloading json data from Google Directions API
+                    FetchUrl.execute(url);
+                    //move map camera
+                    map.moveCamera(CameraUpdateFactory.newLatLng(origin));
+                   // map.animateCamera(CameraUpdateFactory.zoomTo(11));
+                }
             }
         });
 
@@ -126,7 +163,7 @@ public class MainActivity extends AppCompatActivity
         //
         //맵 위치로 이동하기
         map.moveCamera(CameraUpdateFactory.newLatLng(M1));
-        map.animateCamera(CameraUpdateFactory.zoomTo(12));
+        map.animateCamera(CameraUpdateFactory.zoomTo(9));
 
         map.setPadding(300,300,300,300); // left, top, right, bottom //버튼이나 그런거 위치 한정?
         map.getUiSettings().setZoomControlsEnabled(true);
@@ -162,8 +199,8 @@ public class MainActivity extends AppCompatActivity
         String str_origin = "origin=" + origin.latitude + "," + origin.longitude;
         String str_dest = "destination=" + dest.latitude + "," + dest.longitude;
 //AIzaSyDIPfmJXw78A2tKbCtGZekNxAQcli7eoLM
-       //String url = "https://maps.googleapis.com/maps/api/directions/json?" +  str_origin +"&"+str_dest+"&key=AIzaSyDIPfmJXw78A2tKbCtGZekNxAQcli7eoLM";
-        String url = "https://maps.googleapis.com/maps/api/directions/json?origin=75+9th+Ave+New+York,+NY&destination=MetLife+Stadium+1+MetLife+Stadium+Dr+East+Rutherford,+NJ+07073&key=AIzaSyDIPfmJXw78A2tKbCtGZekNxAQcli7eoLM";
+       String url = "https://maps.googleapis.com/maps/api/directions/json?" +  str_origin +"&"+str_dest+"&mode=transit"+ "&key=AIzaSyDIPfmJXw78A2tKbCtGZekNxAQcli7eoLM";
+//        String url = "https://maps.googleapis.com/maps/api/directions/json?origin=75+9th+Ave+New+York,+NY&destination=MetLife+Stadium+1+MetLife+Stadium+Dr+East+Rutherford,+NJ+07073&key=AIzaSyDIPfmJXw78A2tKbCtGZekNxAQcli7eoLM";
         return url;
     }
     private String downloadUrl(String strUrl) throws IOException
@@ -188,6 +225,7 @@ public class MainActivity extends AppCompatActivity
             Log.d("Url","3");
 
             BufferedReader br = new BufferedReader(new InputStreamReader(iStream));
+//            BufferedReader br = new BufferedReader(new InputStreamReader(iStream, StandardCharsets.UTF_8));
             Log.d("Url","4");
 
             StringBuffer sb = new StringBuffer();
@@ -232,17 +270,90 @@ public class MainActivity extends AppCompatActivity
         }
         protected void onPostExecute(String result){
             super.onPostExecute(result);
+            ParserTask parserTask = new ParserTask();
+            parserTask.execute(result);
 
             Intent MyIntent = new Intent(getApplicationContext(),Urltextview.class);
             Log.d("Ftext", result);
             MyIntent.putExtra("url",result);
             startActivity(MyIntent);
+
 //            fetchedtext = result;
         }
-    }//fetchUrl
-//    void urlbutton1(View v)
-//    {
-//    }
+    }// fetchUrl
+
+    private class ParserTask extends AsyncTask<String,Integer,List<List<HashMap<String,String>>>>
+    {
+
+        @Override
+        protected List<List<HashMap<String, String>>> doInBackground(String... jsonData) {
+
+            JSONObject jObject;
+            List<List<HashMap<String,String >>> routes = null;
+            try {
+                jObject = new JSONObject(jsonData[0]);
+                Log.d("ParserTask",jsonData[0].toString());
+                DataParser parser = new DataParser();
+                Log.d("ParserTask", parser.toString());
+
+                // Starts parsing data
+                routes = parser.parse(jObject);
+                Log.d("ParserTask","Executing routes");
+                Log.d("ParserTask",routes.toString());
+
+            } catch (Exception e) {
+                Log.d("ParserTask",e.toString());
+                e.printStackTrace();
+            }
+            return routes;
+        }// doinback
+
+        // Executes in UI thread, after the parsing process
+        @Override
+        protected void onPostExecute(List<List<HashMap<String, String>>> result) {
+            ArrayList<LatLng> points;
+            PolylineOptions lineOptions = null;
+
+            // Traversing through all the routes
+            for (int i = 0; i < result.size(); i++) {
+                points = new ArrayList<>();
+                lineOptions = new PolylineOptions();
+
+                // Fetching i-th route
+                List<HashMap<String, String>> path = result.get(i);
+
+                // Fetching all the points in i-th route
+                for (int j = 0; j < path.size(); j++) {
+                    HashMap<String, String> point = path.get(j);
+
+                    double lat = Double.parseDouble(point.get("lat"));
+                    double lng = Double.parseDouble(point.get("lng"));
+                    LatLng position = new LatLng(lat, lng);
+
+                    points.add(position);
+                }
+
+                // Adding all the points in the route to LineOptions
+                lineOptions.addAll(points);
+                lineOptions.width(10);
+                lineOptions.color(Color.RED);
+
+                Log.d("onPostExecute","onPostExecute lineoptions decoded");
+
+            }
+
+            // Drawing polyline in the Google Map for the i-th route
+            if(lineOptions != null) {
+                map.addPolyline(lineOptions);
+            }
+            else {
+                Log.d("onPostExecute","without Polylines drawn");
+            }
+        }
+
+
+
+    }
 
 }
 
