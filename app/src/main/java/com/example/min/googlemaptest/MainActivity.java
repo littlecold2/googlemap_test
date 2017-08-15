@@ -10,6 +10,7 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
@@ -52,6 +53,8 @@ public class MainActivity extends AppCompatActivity
     //서울
     LatLng M1 = new LatLng(37.56, 126.97);
     LatLng M2 = new LatLng(37.55, 126.47);
+    TextView tv;
+    String s_DD=" ";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -62,6 +65,8 @@ public class MainActivity extends AppCompatActivity
         MapFragment mapFragment = (MapFragment)fragmentManager
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
+
+        tv = (TextView) findViewById(R.id.DDtext);
 
         MarkerPoints = new ArrayList<>();
         MarkerPoints.clear();
@@ -103,6 +108,8 @@ public class MainActivity extends AppCompatActivity
         map.addMarker(markerOptions).setDraggable(true);
         // 함수나 클래스로 만드려면 이렇게 하는게 나을 듯
         */
+
+
         final Marker a = map.addMarker(new MarkerOptions()
                 .position(M1)
                 .draggable(true)
@@ -135,6 +142,7 @@ public class MainActivity extends AppCompatActivity
 
                     //move map camera
                     map.moveCamera(CameraUpdateFactory.newLatLng(origin));
+                    Log.d("s_DD",s_DD);
                    // map.animateCamera(CameraUpdateFactory.zoomTo(11));
                 }
             }
@@ -304,7 +312,7 @@ public class MainActivity extends AppCompatActivity
 
             JSONObject jObject_route, jObject_DD;
             List<List<HashMap<String,String >>> routes = null;
-            List<List<String>> DD = null;
+            List<List<String>> DD;
 
             try {
                 jObject_route = new JSONObject(jsonData[0]);
@@ -319,6 +327,10 @@ public class MainActivity extends AppCompatActivity
                 DD = parser.parse_DT(jObject_DD);
                 for(int i=0;i<DD.get(0).size();i++)
                 {
+                    s_DD = DD.get(0).get(i)+" "+DD.get(1).get(i);
+                   // s_DD.concat(DD.get(0).get(i)+"\n"+DD.get(1).get(i));
+                    Log.d("DisDur_main_s",s_DD);
+
                     Log.d("DisDur_main",DD.get(0).get(i)+"\n"+DD.get(1).get(i));
                 }
 
@@ -337,7 +349,7 @@ public class MainActivity extends AppCompatActivity
         protected void onPostExecute(List<List<HashMap<String, String>>> result) {
             ArrayList<LatLng> points;
             PolylineOptions lineOptions = null;
-
+            tv.setText(s_DD);
             // Traversing through all the routes
             for (int i = 0; i < result.size(); i++) {
                 points = new ArrayList<>();
