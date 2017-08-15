@@ -1,5 +1,7 @@
 package com.example.min.googlemaptest;
 
+import android.util.Log;
+
 import com.google.android.gms.maps.model.LatLng;
 
 import org.json.JSONArray;
@@ -60,6 +62,59 @@ public class DataParser {
         }
         return routes;
     }
+
+    public List<List<String>> parse_DT(JSONObject jObject)
+    {
+        JSONArray jRows;
+        JSONArray jElements;
+
+        List<List<String>> data = new ArrayList<>();
+        List <String> iDistance = new ArrayList<>();
+        List <String> iDuration = new ArrayList<>();
+        //elements 는 여러개고
+        // distance,duration 조합이 여러개.
+        // e
+        // distance.get("text") for문 엘리먼츠 사이즈만큼.
+        Log.d("DisDur","1");
+        try {
+            Log.d("DisDur","2");
+            jRows = jObject.getJSONArray("rows");
+            for(int i=0;i<jRows.length();i++)
+            {
+
+                jElements = ((JSONObject)jRows.get(i)).getJSONArray("elements");
+                Log.d("DisDur",jElements.get(0).toString());
+                for(int j=0;j<jElements.length();j++)
+                {
+                    Log.d("DisDur","4");
+                    JSONObject jDis = ((JSONObject)jElements.get(i)).getJSONObject("distance");
+                    JSONObject jDur = ((JSONObject)jElements.get(i)).getJSONObject("duration");
+
+                    Log.d("DisDur",jDis.get("text").toString());
+                    Log.d("DisDur",jDur.get("text").toString());
+
+                    iDistance.add(jDis.get("text").toString());
+                    iDuration.add(jDur.get("text").toString());
+                }
+            }
+            Log.d("DisDur","5");
+            data.add(iDistance);
+            data.add(iDuration);
+
+
+        } catch (JSONException e) {
+            Log.d("DisDur","catch당함");
+            e.printStackTrace();
+        }
+        for(int i=0;i<data.get(0).size();i++)
+        {
+            Log.d("DisDur",data.get(0).get(i)+"\n"+data.get(1).get(i));
+        }
+        return data;
+//       System.out.println("??");
+    }
+
+
     /**
      * Method to decode polyline points
      * Courtesy : http://jeffreysambells.com/2010/05/27/decoding-polylines-from-google-maps-direction-api-with-java
@@ -97,5 +152,6 @@ public class DataParser {
 
         return poly;
     }
+
 
 }

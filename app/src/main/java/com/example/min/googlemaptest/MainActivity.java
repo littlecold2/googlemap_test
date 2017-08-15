@@ -4,6 +4,7 @@ import android.app.FragmentManager;
 import android.content.Intent;
 import android.graphics.Color;
 import android.os.AsyncTask;
+import android.support.annotation.ColorInt;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -125,12 +126,13 @@ public class MainActivity extends AppCompatActivity
                     LatLng dest = MarkerPoints.get(1);
 
                     // Getting URL to the Google Directions API
-                    String url = getUrl(origin, dest);
-                    Log.d("onMapClick", url.toString());
+                    String[] url = getUrl(origin, dest);
+                    Log.d("onMapClick", url[0].toString());
                     fetchUrl FetchUrl = new fetchUrl();
 
                     // Start downloading json data from Google Directions API
-                    FetchUrl.execute(url);
+                    FetchUrl.execute(url[0],url[1]);
+
                     //move map camera
                     map.moveCamera(CameraUpdateFactory.newLatLng(origin));
                    // map.animateCamera(CameraUpdateFactory.zoomTo(11));
@@ -173,14 +175,14 @@ public class MainActivity extends AppCompatActivity
         { @Override
             public void onClick(View view)
             {
-                String url = getUrl(M1,M2);
+                String url[] = getUrl(MarkerPoints.get(0),MarkerPoints.get(1));
                 fetchUrl fUrl = new fetchUrl();
-                fUrl.execute(url);
+                fUrl.execute(url[0],url[1]);
                // fetchedtext = fUrl;
-                Toast.makeText(getApplicationContext(),"url 버튼 눌림",Toast.LENGTH_LONG).show();
-//                Intent MyIntent = new Intent(getApplicationContext(),Urltextview.class);
+               // Toast.makeText(getApplicationContext(),"url 버튼 눌림",Toast.LENGTH_LONG).show();
+                //Intent MyIntent = new Intent(getApplicationContext(),Urltextview.class);
 //                Log.d("Ftext", url);
-//                MyIntent.putExtra("url",url);
+                //MyIntent.putExtra("url",url[1]);
 //                startActivity(MyIntent);
                 //EditText editTextName = (EditText) findViewById(R.id.editTextName) ;
                 // intent.putExtra("contact_name", editTextName.getText().toString()) ;
@@ -194,13 +196,21 @@ public class MainActivity extends AppCompatActivity
 // https://maps.googleapis.com/maps/api/directions/outputFormat?parameters
     //https://maps.googleapis.com/maps/api/directions/json?origin=Disneyland&destination=Universal+Studios+Hollywood4&key=YOUR_API_KEY
     // origin=41.43206,-81.38992
-    private String getUrl(LatLng origin, LatLng dest)
+    private String[] getUrl(LatLng origin, LatLng dest)
     {
+        String[] url = {"",""};
         String str_origin = "origin=" + origin.latitude + "," + origin.longitude;
+        String str_origin2 = "origins=" + origin.latitude + "," + origin.longitude;
         String str_dest = "destination=" + dest.latitude + "," + dest.longitude;
+        String str_dest2 = "destinations=" + dest.latitude + "," + dest.longitude;
 //AIzaSyDIPfmJXw78A2tKbCtGZekNxAQcli7eoLM
-       String url = "https://maps.googleapis.com/maps/api/directions/json?" +  str_origin +"&"+str_dest+"&mode=transit"+ "&key=AIzaSyDIPfmJXw78A2tKbCtGZekNxAQcli7eoLM";
+        //derection
+        url[0] = "https://maps.googleapis.com/maps/api/directions/json?" +  str_origin +"&"+str_dest+"&mode=transit"+ "&key=AIzaSyDIPfmJXw78A2tKbCtGZekNxAQcli7eoLM";
 //        String url = "https://maps.googleapis.com/maps/api/directions/json?origin=75+9th+Ave+New+York,+NY&destination=MetLife+Stadium+1+MetLife+Stadium+Dr+East+Rutherford,+NJ+07073&key=AIzaSyDIPfmJXw78A2tKbCtGZekNxAQcli7eoLM";
+        // distancematirx // origins , detanations로 해야된다.
+//        String url =  "https://maps.googleapis.com/maps/api/distancematrix/json?origins=Vancouver+BC|Seattle&destinations=San+Francisco|Victoria+BC&mode=transit&transit_mode=train&key=AIzaSyBuR03U17WtCJ50jQI3WNsQOKWN9FeUu6s";
+        url[1] = "https://maps.googleapis.com/maps/api/distancematrix/json?" +  str_origin2 +"&"+str_dest2+"&mode=transit"+ "&key=AIzaSyBuR03U17WtCJ50jQI3WNsQOKWN9FeUu6s";
+
         return url;
     }
     private String downloadUrl(String strUrl) throws IOException
@@ -253,29 +263,33 @@ public class MainActivity extends AppCompatActivity
         }
         return data;
     }
-    private class fetchUrl extends AsyncTask<String, Void, String>
+    private class fetchUrl extends AsyncTask<String, Void, String[]>
 
     {
-        protected String doInBackground(String... url)
+        protected String[] doInBackground(String... url)
         {
-            String data = "";
+            String[] data = {"",""};
             try {
-                data = downloadUrl(url[0]);
-                Log.d("dD", data.toString());
+                data[0] = downloadUrl(url[0]);
+                data[1] = downloadUrl(url[1]);
+
+                Log.d("dD", data[0].toString());
+                Log.d("dD", data[1].toString());
             } catch (Exception e) {
                 Log.d("Background Task", e.toString());
             }
             return data;
 
         }
-        protected void onPostExecute(String result){
+        protected void onPostExecute(String[] result){
             super.onPostExecute(result);
             ParserTask parserTask = new ParserTask();
             parserTask.execute(result);
 
             Intent MyIntent = new Intent(getApplicationContext(),Urltextview.class);
-            Log.d("Ftext", result);
-            MyIntent.putExtra("url",result);
+            Log.d("Ftext", result[0]);
+            Log.d("Ftext", result[1]);
+            MyIntent.putExtra("url",result[0]+ "\n\n\n\n\n" + result[1]);
             startActivity(MyIntent);
 
 //            fetchedtext = result;
@@ -288,16 +302,26 @@ public class MainActivity extends AppCompatActivity
         @Override
         protected List<List<HashMap<String, String>>> doInBackground(String... jsonData) {
 
-            JSONObject jObject;
+            JSONObject jObject_route, jObject_DD;
             List<List<HashMap<String,String >>> routes = null;
+            List<List<String>> DD = null;
+
             try {
-                jObject = new JSONObject(jsonData[0]);
+                jObject_route = new JSONObject(jsonData[0]);
+                jObject_DD = new JSONObject((jsonData[1]));
+
                 Log.d("ParserTask",jsonData[0].toString());
                 DataParser parser = new DataParser();
                 Log.d("ParserTask", parser.toString());
 
                 // Starts parsing data
-                routes = parser.parse(jObject);
+                routes = parser.parse(jObject_route);
+                DD = parser.parse_DT(jObject_DD);
+                for(int i=0;i<DD.get(0).size();i++)
+                {
+                    Log.d("DisDur_main",DD.get(0).get(i)+"\n"+DD.get(1).get(i));
+                }
+
                 Log.d("ParserTask","Executing routes");
                 Log.d("ParserTask",routes.toString());
 
@@ -336,7 +360,7 @@ public class MainActivity extends AppCompatActivity
                 // Adding all the points in the route to LineOptions
                 lineOptions.addAll(points);
                 lineOptions.width(10);
-                lineOptions.color(Color.RED);
+                lineOptions.color(Color.rgb(33,142,233));//8EC7fF
 
                 Log.d("onPostExecute","onPostExecute lineoptions decoded");
 
