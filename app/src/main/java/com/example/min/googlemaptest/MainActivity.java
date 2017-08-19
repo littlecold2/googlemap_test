@@ -1,24 +1,40 @@
 package com.example.min.googlemaptest;
 
+import android.Manifest;
+import android.app.Activity;
 import android.app.FragmentManager;
+import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.graphics.Color;
+import android.location.Criteria;
+import android.location.Location;
+import android.location.LocationListener;
+import android.location.LocationManager;
 import android.os.AsyncTask;
-import android.support.annotation.ColorInt;
+import android.support.annotation.NonNull;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.text.Html;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.android.gms.common.GooglePlayServicesNotAvailableException;
+import com.google.android.gms.common.GooglePlayServicesRepairableException;
+import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.location.places.ui.PlacePicker;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapFragment;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.PolylineOptions;
@@ -29,32 +45,51 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
 import java.net.URL;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 
 import javax.net.ssl.HttpsURLConnection;
-
-//import com.google.android.gms.maps.GoogleMap.OnMarkerClickListener;
-
-
+import com.google.android.gms.location.places.Place;
+import com.google.android.gms.location.places.ui.PlacePicker;
 
 public class MainActivity extends AppCompatActivity
-        implements OnMapReadyCallback {
+        implements
+        GoogleMap.OnMyLocationButtonClickListener,
+        OnMapReadyCallback,
+        ActivityCompat.OnRequestPermissionsResultCallback{
 
     private GoogleMap map;
-    ArrayList<LatLng> MarkerPoints; // 나중에 쓰기
+    private boolean mPermissionDenied = false;
+
+
+
+    private Location lastKnownLocation = null ;
+
+
+
+    ArrayList<LatLng> MarkerPoints; // 마커 저장
     //로마
 //    LatLng M2 = new LatLng(41.86, 12.97); // 경도, 위도
 //    LatLng M1 = new LatLng(41.85, 12.46);
     //서울
     LatLng M1 = new LatLng(37.56, 126.97);
-    LatLng M2 = new LatLng(37.55, 126.47);
+    LatLng M2 = new LatLng(37.628, 126.825); // 울집
+//    private static final LatLngBounds BOUNDS_VIEW = new LatLngBounds(
+//            new LatLng(37.56, 126.97), new LatLng(37.628, 126.825));
+    private static final LatLngBounds BOUNDS_VIEW = new LatLngBounds(
+            new LatLng(37.56, 126.98), new LatLng(37.57, 127.02));
+
     TextView tv;
     String s_DD=" ";
+    List<String> l_s_DD;
+    private int DD_cnt=0;
+    private  int gps_cnt=0;
+
+    private static final int PLACE_PICKER_REQUEST =1;
+    private static final int LOCATION_PERMISSION_REQUEST_CODE = 1;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -66,48 +101,25 @@ public class MainActivity extends AppCompatActivity
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
 
-        tv = (TextView) findViewById(R.id.DDtext);
 
+        tv = (TextView) findViewById(R.id.DDtext);
+        l_s_DD = new ArrayList<>();
+        l_s_DD.clear();
         MarkerPoints = new ArrayList<>();
         MarkerPoints.clear();
 //        String url = getUrl(M1,M2);
 //        fetchUrl fUrl = new fetchUrl();
 //        fUrl.execute(url);
+
 //
 
     }
-    private void pickMark(final GoogleMap map, final LatLng LL)
-    {
-
-            MarkerOptions markerOptions = new MarkerOptions();
-            markerOptions.position(LL);
-            markerOptions.title(Double.toString(LL.latitude)+","+Double.toString(LL.longitude));
-            markerOptions.snippet("snippet");
-            markerOptions.draggable(true);
-
-        //색 다르게인가?
-        if(MarkerPoints.size()==0)
-        {
-            markerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN));
-        }
-        else if (MarkerPoints.size() == 1) {
-            markerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED));
-        }
-        map.addMarker(markerOptions).setDraggable(true);
-        MarkerPoints.add(LL);
-    } // pickMark
     @Override
     public void onMapReady(final GoogleMap gMap) {
         map = gMap;
-        //pickMark(map,M2);
-/*        MarkerOptions markerOptions = new MarkerOptions();
-        markerOptions.position(SEOUL);
-        markerOptions.title("서울");
-        markerOptions.snippet("한국의 수도");
-        markerOptions.draggable(true);
-        map.addMarker(markerOptions).setDraggable(true);
-        // 함수나 클래스로 만드려면 이렇게 하는게 나을 듯
-        */
+        map.setOnMyLocationButtonClickListener(this);
+        enableMyLocation();
+
 
 
         final Marker a = map.addMarker(new MarkerOptions()
@@ -123,28 +135,7 @@ public class MainActivity extends AppCompatActivity
         map.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
             @Override
             public void onMapClick(LatLng latLng) {
-                if(MarkerPoints.size()>1){
-                    MarkerPoints.clear();
-                    map.clear();
-                }
                 pickMark(map,latLng);
-                if (MarkerPoints.size() >= 2) {
-                    LatLng origin = MarkerPoints.get(0);
-                    LatLng dest = MarkerPoints.get(1);
-
-                    // Getting URL to the Google Directions API
-                    String[] url = getUrl(origin, dest);
-                    Log.d("onMapClick", url[0].toString());
-                    fetchUrl FetchUrl = new fetchUrl();
-
-                    // Start downloading json data from Google Directions API
-                    FetchUrl.execute(url[0],url[1]);
-
-                    //move map camera
-                    map.moveCamera(CameraUpdateFactory.newLatLng(origin));
-                    Log.d("s_DD",s_DD);
-                   // map.animateCamera(CameraUpdateFactory.zoomTo(11));
-                }
             }
         });
 
@@ -172,38 +163,222 @@ public class MainActivity extends AppCompatActivity
          */
         //
         //맵 위치로 이동하기
-        map.moveCamera(CameraUpdateFactory.newLatLng(M1));
-        map.animateCamera(CameraUpdateFactory.zoomTo(9));
+        map.moveCamera(CameraUpdateFactory.newLatLng(M2));
+        map.animateCamera(CameraUpdateFactory.zoomTo(15));
 
-        map.setPadding(300,300,300,300); // left, top, right, bottom //버튼이나 그런거 위치 한정?
+       // map.setPadding(300,300,300,300); // left, top, right, bottom //버튼이나 그런거 위치 한정?
         map.getUiSettings().setZoomControlsEnabled(true);
        //  map.setMapType(GoogleMap.MAP_TYPE_HYBRID); // 지도 유형 변경
         Button button1 = (Button) findViewById(R.id.button1);
+        Button button2 = (Button) findViewById(R.id.button2);
+        Button button3 = (Button) findViewById(R.id.button3);
+
         button1.setOnClickListener(new Button.OnClickListener()
         { @Override
             public void onClick(View view)
             {
-                String url[] = getUrl(MarkerPoints.get(0),MarkerPoints.get(1));
-                fetchUrl fUrl = new fetchUrl();
-                fUrl.execute(url[0],url[1]);
-               // fetchedtext = fUrl;
-               // Toast.makeText(getApplicationContext(),"url 버튼 눌림",Toast.LENGTH_LONG).show();
-                //Intent MyIntent = new Intent(getApplicationContext(),Urltextview.class);
-//                Log.d("Ftext", url);
-                //MyIntent.putExtra("url",url[1]);
-//                startActivity(MyIntent);
-                //EditText editTextName = (EditText) findViewById(R.id.editTextName) ;
-                // intent.putExtra("contact_name", editTextName.getText().toString()) ;
+                for(int i=0;i<MarkerPoints.size()-1;i++) {
+                  //  tv.setText("");
+                    String url[] = getUrl(MarkerPoints.get(i), MarkerPoints.get(i+1));
+                    fetchUrl fUrl = new fetchUrl();
+                    fUrl.execute(url[0], url[1]);
+                }
             }
         });
+        button2.setOnClickListener(new Button.OnClickListener()
+        { @Override
+        public void onClick(View view)
+        {
+            MarkerPoints.clear();
+            map.clear();
+            l_s_DD.clear();
+            tv.setText("Distance, Duration");
+            DD_cnt=0;
 
 
 
-
+        }
+        });
+        button3.setOnClickListener(new Button.OnClickListener()
+        { @Override
+        public void onClick(View view)
+        {
+            try {
+                PlacePicker.IntentBuilder intentBuilder = new PlacePicker.IntentBuilder();
+                intentBuilder.setLatLngBounds(BOUNDS_VIEW);
+                Intent intent = intentBuilder.build(MainActivity.this);
+                startActivityForResult(intent,PLACE_PICKER_REQUEST);
+            } catch (GooglePlayServicesRepairableException e) {
+                e.printStackTrace();
+            } catch (GooglePlayServicesNotAvailableException e) {
+                e.printStackTrace();
+            }
+        }
+        });
     }
+
+    private void pickMark(final GoogleMap map, final LatLng LL)
+    {
+
+        MarkerOptions markerOptions = new MarkerOptions();
+        markerOptions.position(LL);
+        markerOptions.title(String.format(Locale.KOREA,"%.3f",LL.latitude)+","+String.format(Locale.KOREA,"%.3f",LL.longitude));
+        markerOptions.snippet("snippet");
+        markerOptions.draggable(true);
+        //색 다르게인가?
+        if(MarkerPoints.size()==0)
+        {
+            markerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN));
+        }
+        else if (MarkerPoints.size() == 1) {
+            markerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED));
+        }
+        else if(MarkerPoints.size()>1)
+        {
+            markerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE));
+
+        }
+        map.addMarker(markerOptions).setDraggable(true);
+        MarkerPoints.add(LL);
+    } // pickMark
+
+
+    LocationListener locationListener = new LocationListener() {
+        @Override
+        public void onLocationChanged(Location location) {
+
+            LocationManager lm = (LocationManager)getSystemService(Context.LOCATION_SERVICE);
+            // Get the last location.
+            lastKnownLocation = location;
+
+
+            lm.requestLocationUpdates(
+                    LocationManager.NETWORK_PROVIDER,
+                    1000,
+                    10,
+                    locationListener
+            );
+            tv.setText(String.format(Locale.KOREA,"%.3f",lastKnownLocation.getLatitude())+ " , "+ String.format(Locale.KOREA,"%.3f",lastKnownLocation.getLongitude()));
+            Toast.makeText(getApplicationContext(), String.format(Locale.KOREA,"%.3f",lastKnownLocation.getLatitude())+ " , "+ String.format(Locale.KOREA,"%.3f",lastKnownLocation.getLongitude()), Toast.LENGTH_SHORT).show();
+           // lm.removeUpdates(locationListener);
+
+        }// onLocationChanged
+
+        @Override
+        public void onProviderDisabled(String provider) {
+        }
+        @Override
+        public void onProviderEnabled(String provider) {
+        }
+        @Override
+        public void onStatusChanged(String provider, int status, Bundle extras) {
+        }
+    };
+
+//////////////////////////// My Location start
+
+    @Override
+    public boolean onMyLocationButtonClick() {
+        LocationManager lm = (LocationManager)getSystemService(Context.LOCATION_SERVICE);
+        lm.requestLocationUpdates(LocationManager.NETWORK_PROVIDER,0,0,locationListener);
+        if(gps_cnt==0) {
+            Toast.makeText(this, "GPS 추적 ON", Toast.LENGTH_SHORT).show();
+            gps_cnt++;
+        }
+        else
+        {
+            lm.removeUpdates(locationListener);
+            Toast.makeText(this, "GPS 추적 OFF", Toast.LENGTH_SHORT).show();
+            gps_cnt=0;
+        }
+        return false;
+    }
+
+
+    private void enableMyLocation() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+                 != PackageManager.PERMISSION_GRANTED) {
+                     // Permission to access the location is missing.
+           PermissionUtils.requestPermission(this, LOCATION_PERMISSION_REQUEST_CODE,
+                             Manifest.permission.ACCESS_FINE_LOCATION, true);
+                 } else if (map != null) {
+                     // Access to the location has been granted to the app.
+                     map.setMyLocationEnabled(true);
+
+        }
+    }
+
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
+                                           @NonNull int[] grantResults) {
+        if (requestCode != LOCATION_PERMISSION_REQUEST_CODE) {
+            return;
+        }
+
+        if (PermissionUtils.isPermissionGranted(permissions, grantResults,
+                Manifest.permission.ACCESS_FINE_LOCATION)) {
+            // Enable the my location layer if the permission has been granted.
+            enableMyLocation();
+
+
+        } else {
+            // Display the missing permission error dialog when the fragments resume.
+            mPermissionDenied = true;
+        }
+    }
+    protected void onResumeFragments() {
+        super.onResumeFragments();
+        if (mPermissionDenied) {
+            // Permission was not granted, display error dialog.
+            showMissingPermissionError();
+            mPermissionDenied = false;
+        }
+    }
+
+    private void showMissingPermissionError() {
+        PermissionUtils.PermissionDeniedDialog
+                .newInstance(true).show(getSupportFragmentManager(), "dialog");
+    }
+
+/////////////////////// My Location End
+
+
+    protected void onActivityResult(int requestCode, int resultCode, Intent data)
+    {
+        if(requestCode == PLACE_PICKER_REQUEST && resultCode == Activity.RESULT_OK)
+        {
+            final Place place = PlacePicker.getPlace(this, data);
+            final CharSequence name = place.getName();
+            final CharSequence address = place.getAddress();
+
+
+            String attributions = (String) place.getAttributions();
+            if (attributions == null) {
+                attributions = "";
+            }
+
+            pickMark(map,place.getLatLng());
+
+            tv.setText("");
+            tv.append("name : " + name + "\n");
+            tv.append("address\n" + address+"\n");
+            Log.d("Place_Pick","1");
+            tv.append(Html.fromHtml(attributions));
+            Log.d("Place_Pick","2");
+            Log.d("Place_Pick",attributions);
+            map.moveCamera(CameraUpdateFactory.newLatLng(place.getLatLng()));
+            map.animateCamera(CameraUpdateFactory.zoomTo(13));
+        }
+        else {
+            super.onActivityResult(requestCode, resultCode, data);
+        }
+    } // 구글 플레이스 정보 가져오기
+
+
 // https://maps.googleapis.com/maps/api/directions/outputFormat?parameters
     //https://maps.googleapis.com/maps/api/directions/json?origin=Disneyland&destination=Universal+Studios+Hollywood4&key=YOUR_API_KEY
     // origin=41.43206,-81.38992
+
+    // url 보내고 받아서 파싱 하는 부분 시작
     private String[] getUrl(LatLng origin, LatLng dest)
     {
         String[] url = {"",""};
@@ -271,6 +446,8 @@ public class MainActivity extends AppCompatActivity
         }
         return data;
     }
+
+
     private class fetchUrl extends AsyncTask<String, Void, String[]>
 
     {
@@ -294,11 +471,11 @@ public class MainActivity extends AppCompatActivity
             ParserTask parserTask = new ParserTask();
             parserTask.execute(result);
 
-            Intent MyIntent = new Intent(getApplicationContext(),Urltextview.class);
-            Log.d("Ftext", result[0]);
-            Log.d("Ftext", result[1]);
-            MyIntent.putExtra("url",result[0]+ "\n\n\n\n\n" + result[1]);
-            startActivity(MyIntent);
+            //Intent MyIntent = new Intent(getApplicationContext(),Urltextview.class);
+            //Log.d("Ftext", result[0]);
+            //Log.d("Ftext", result[1]);
+            //MyIntent.putExtra("url",result[0]+ "\n\n\n\n\n" + result[1]);
+           // startActivity(MyIntent);
 
 //            fetchedtext = result;
         }
@@ -325,14 +502,18 @@ public class MainActivity extends AppCompatActivity
                 // Starts parsing data
                 routes = parser.parse(jObject_route);
                 DD = parser.parse_DT(jObject_DD);
-                for(int i=0;i<DD.get(0).size();i++)
-                {
-                    s_DD = DD.get(0).get(i)+" "+DD.get(1).get(i);
-                   // s_DD.concat(DD.get(0).get(i)+"\n"+DD.get(1).get(i));
-                    Log.d("DisDur_main_s",s_DD);
+                String sDD ="";
+                Log.d("ParserTask","DDsize: " +DD.get(0).size());
+                for(int i=0;i<DD.get(0).size();i++) {
+                    sDD = DD.get(0).get(i)+" "+DD.get(1).get(i);
+//                    s_DD = DD.get(0).get(i) + " " + DD.get(1).get(i) + "\n";
+                    // s_DD.concat(DD.get(0).get(i)+"\n"+DD.get(1).get(i));
+                  //  Log.d("l_s_DD", sDD);
 
-                    Log.d("DisDur_main",DD.get(0).get(i)+"\n"+DD.get(1).get(i));
+//                    Log.d("DisDur_main",DD.get(0).get(i)+"\n"+DD.get(1).get(i));
                 }
+               // Log.d("l_s_DD", "sDD: "+sDD);
+                l_s_DD.add(sDD);
 
                 Log.d("ParserTask","Executing routes");
                 Log.d("ParserTask",routes.toString());
@@ -349,7 +530,21 @@ public class MainActivity extends AppCompatActivity
         protected void onPostExecute(List<List<HashMap<String, String>>> result) {
             ArrayList<LatLng> points;
             PolylineOptions lineOptions = null;
-            tv.setText(s_DD);
+
+            DD_cnt++;
+            Log.d("l_s_DD","cnt: " + DD_cnt);
+            Log.d("l_s_DD", "size :" + l_s_DD.size());
+           // Log.d("l_s_DD","l_s_DD[0]: " + l_s_DD.get(0));
+
+            if(DD_cnt == l_s_DD.size()) {
+//                tv.setGravity(Gravity.LEFT);
+                tv.setText("1: " + l_s_DD.get(0)+"\n");
+                Log.d("l_s_DD","l_s_DD[0]: " + l_s_DD.get(0));
+                for (int i = 1; i < l_s_DD.size(); i++) {
+                    Log.d("l_s_DD","l_s_DD["+i+"]: " + l_s_DD.get(i));
+                    tv.append(i+1+": " + l_s_DD.get(i)+"\n");
+                }
+            }
             // Traversing through all the routes
             for (int i = 0; i < result.size(); i++) {
                 points = new ArrayList<>();
@@ -387,9 +582,7 @@ public class MainActivity extends AppCompatActivity
             }
         }
 
-
-
-    }
-
+    }// ParserTask
+// url 보내고 받아서 파싱 하는 부분 끝
 }
 

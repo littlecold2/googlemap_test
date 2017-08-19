@@ -15,6 +15,11 @@
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
 
 
+    <meta-data
+        android:name="com.google.android.gms.version"
+        android:value="@integer/google_play_services_version"/>
+
+
 
     //AIzaSyDIPfmJXw78A2tKbCtGZekNxAQcli7eoLM
     <application
@@ -26,8 +31,10 @@
         android:theme="@style/AppTheme">
 
         <meta-data
+
             android:name="com.google.android.geo.API_KEY"
-            android:value="AIzaSyDIPfmJXw78A2tKbCtGZekNxAQcli7eoLM" />
+            android:value="AIzaSyBVAh-rJPsBHbKlRAs6oMtFc6ZQy6bZ2kg" />
+            <!--android:value="AIzaSyDIPfmJXw78A2tKbCtGZekNxAQcli7eoLM" />-->
 
         <activity android:name=".MainActivity">
             <intent-filter>
@@ -39,6 +46,9 @@
         <activity android:name=".Urltextview">
 
         </activity>
+        <!--<activity android:name=".PermissionUtils">-->
+
+        <!--</activity>-->
     </application>
 
 </manifest>

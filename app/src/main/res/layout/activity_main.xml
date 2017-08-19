@@ -2,34 +2,63 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical">
+    android:orientation="vertical"
+    android:weightSum="1"
     tools:context=".MainActivity" >
 
     <fragment
         android:id="@+id/map"
         android:layout_width="match_parent"
-        android:layout_height="528dp"
+        android:layout_height="match_parent"
+        android:layout_weight="0.20"
         class="com.google.android.gms.maps.MapFragment" />
 <LinearLayout
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:orientation="horizontal"
+    android:layout_weight="0.80"
     android:weightSum="1">
-
-    <Button
-        android:id="@+id/button1"
+    <LinearLayout
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:onClick="urlbutton1"
-        android:text="url Fetch" />
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:weightSum="1"
+        >
+        <Button
+            android:id="@+id/button1"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:onClick="urlbutton1"
+            android:text="url Fetch"
+            android:layout_weight="0.3"/>
+        <Button
+            android:id="@+id/button2"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:onClick="clear"
+            android:text="clear"
+            android:layout_weight="0.3"/>
+        <Button
+            android:id="@+id/button3"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:onClick="PlacePicker"
+            android:text="PlacePicker"
+            android:layout_weight="0.3"/>
 
-    <TextView
-        android:id="@+id/DDtext"
-        android:layout_width="221dp"
-        android:layout_height="28dp"
-        android:gravity="center"
-        android:text="Distance, Duration"
-        android:textSize="20dp"
-        android:layout_weight="0.63" />
+    </LinearLayout>
+    <ScrollView
+        android:id="@+id/scollview"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+        <TextView
+            android:id="@+id/DDtext"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:text=" Distance, Duration"
+            android:textSize="20dp" />
+    </ScrollView>
+
 
 </LinearLayout>
 

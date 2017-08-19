@@ -108,7 +108,7 @@ public class DataParser {
         }
         for(int i=0;i<data.get(0).size();i++)
         {
-            Log.d("DisDur",data.get(0).get(i)+"\n"+data.get(1).get(i));
+            Log.d("DisDur",data.get(0).get(i)+"\n"+data.get(1).get(i)); //get0 : 거리 , get(1) : 시간
         }
         return data;
 //       System.out.println("??");
