@@ -32,11 +32,13 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapFragment;
 import com.google.android.gms.maps.OnMapReadyCallback;
+import com.google.android.gms.maps.UiSettings;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
 
 import org.json.JSONObject;
@@ -69,7 +71,7 @@ public class MainActivity extends AppCompatActivity
     private Location lastKnownLocation = null ;
 
 
-
+    int L_cnt=0;
     ArrayList<LatLng> MarkerPoints; // 마커 저장
     //로마
 //    LatLng M2 = new LatLng(41.86, 12.97); // 경도, 위도
@@ -151,6 +153,13 @@ public class MainActivity extends AppCompatActivity
                 return false;
             }
         });
+        // 폴리라인 클릭 리스너
+        map.setOnPolylineClickListener(new GoogleMap.OnPolylineClickListener() {
+            @Override
+            public void onPolylineClick(Polyline polyline) {
+
+            }
+        });
 
 
 
@@ -168,6 +177,7 @@ public class MainActivity extends AppCompatActivity
 
        // map.setPadding(300,300,300,300); // left, top, right, bottom //버튼이나 그런거 위치 한정?
         map.getUiSettings().setZoomControlsEnabled(true);
+
        //  map.setMapType(GoogleMap.MAP_TYPE_HYBRID); // 지도 유형 변경
         Button button1 = (Button) findViewById(R.id.button1);
         Button button2 = (Button) findViewById(R.id.button2);
@@ -185,6 +195,7 @@ public class MainActivity extends AppCompatActivity
                 }
             }
         });
+
         button2.setOnClickListener(new Button.OnClickListener()
         { @Override
         public void onClick(View view)
@@ -195,6 +206,15 @@ public class MainActivity extends AppCompatActivity
             tv.setText("Distance, Duration");
             DD_cnt=0;
 
+            if(L_cnt==0) {
+                L_cnt++;
+                map.setMyLocationEnabled(false);
+//                map.getUiSettings().setMyLocationButtonEnabled(true);
+            }
+            else {
+                map.setMyLocationEnabled(true);
+                L_cnt=0;
+            }
 
 
         }
@@ -220,11 +240,22 @@ public class MainActivity extends AppCompatActivity
     private void pickMark(final GoogleMap map, final LatLng LL)
     {
 
+        final Marker a = map.addMarker(new MarkerOptions()
+                .position(M1)
+                .draggable(true)
+                .snippet("한국의 수도")
+                .title("서울"));
+        a.setDraggable(true);
+        //  위에 말풍선 표시한거 보여주도록 호출
+        a.showInfoWindow();
+
+
         MarkerOptions markerOptions = new MarkerOptions();
         markerOptions.position(LL);
         markerOptions.title(String.format(Locale.KOREA,"%.3f",LL.latitude)+","+String.format(Locale.KOREA,"%.3f",LL.longitude));
         markerOptions.snippet("snippet");
         markerOptions.draggable(true);
+
         //색 다르게인가?
         if(MarkerPoints.size()==0)
         {
@@ -239,8 +270,11 @@ public class MainActivity extends AppCompatActivity
 
         }
         map.addMarker(markerOptions).setDraggable(true);
+        map.addMarker(markerOptions).showInfoWindow();
         MarkerPoints.add(LL);
     } // pickMark
+
+//////////////////////////// My Location start
 
 
     LocationListener locationListener = new LocationListener() {
@@ -250,7 +284,6 @@ public class MainActivity extends AppCompatActivity
             LocationManager lm = (LocationManager)getSystemService(Context.LOCATION_SERVICE);
             // Get the last location.
             lastKnownLocation = location;
-
 
             lm.requestLocationUpdates(
                     LocationManager.NETWORK_PROVIDER,
@@ -275,11 +308,15 @@ public class MainActivity extends AppCompatActivity
         }
     };
 
-//////////////////////////// My Location start
-
+// about location button
     @Override
     public boolean onMyLocationButtonClick() {
         LocationManager lm = (LocationManager)getSystemService(Context.LOCATION_SERVICE);
+        if(!lm.isProviderEnabled(LocationManager.GPS_PROVIDER))
+        {
+            Toast.makeText(this, "GPS 켜지지않음", Toast.LENGTH_SHORT).show();
+            return false;
+        }
         lm.requestLocationUpdates(LocationManager.NETWORK_PROVIDER,0,0,locationListener);
         if(gps_cnt==0) {
             Toast.makeText(this, "GPS 추적 ON", Toast.LENGTH_SHORT).show();
@@ -339,9 +376,9 @@ public class MainActivity extends AppCompatActivity
                 .newInstance(true).show(getSupportFragmentManager(), "dialog");
     }
 
-/////////////////////// My Location End
+/////////////////////// about Location buttoon
 
-
+/////////////////////// Google place
     protected void onActivityResult(int requestCode, int resultCode, Intent data)
     {
         if(requestCode == PLACE_PICKER_REQUEST && resultCode == Activity.RESULT_OK)
@@ -471,13 +508,12 @@ public class MainActivity extends AppCompatActivity
             ParserTask parserTask = new ParserTask();
             parserTask.execute(result);
 
-            //Intent MyIntent = new Intent(getApplicationContext(),Urltextview.class);
+            Intent MyIntent = new Intent(getApplicationContext(),Urltextview.class);
+
+            MyIntent.putExtra("url",result[1]+ "\n\n\n************\n\n\n" + result[0]);
+            startActivity(MyIntent);
             //Log.d("Ftext", result[0]);
             //Log.d("Ftext", result[1]);
-            //MyIntent.putExtra("url",result[0]+ "\n\n\n\n\n" + result[1]);
-           // startActivity(MyIntent);
-
-//            fetchedtext = result;
         }
     }// fetchUrl
 
