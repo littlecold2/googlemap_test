@@ -32,13 +32,23 @@ public class DataParser {
             for (int i = 0; i < jRoutes.length(); i++) {
                 jLegs = ((JSONObject) jRoutes.get(i)).getJSONArray("legs");
                 List path = new ArrayList<>();
-
+                List l_DD = new ArrayList<>();
                 /** Traversing all legs */
                 for (int j = 0; j < jLegs.length(); j++) {
                     jSteps = ((JSONObject) jLegs.get(j)).getJSONArray("steps");
+                    HashMap<String,String> h_DD = new HashMap<>();
+
+                    JSONObject jDis = ((JSONObject)jLegs.get(i)).getJSONObject("distance");
+                    JSONObject jDur = ((JSONObject)jLegs.get(i)).getJSONObject("duration");
+
+                    h_DD.put("Distance",jDis.get("text").toString());
+                    h_DD.put("Duration",jDur.get("text").toString());
+                    Log.d("d_parsing","DP:"+ h_DD.get("Distance"));
+                    path.add(h_DD);
 
                     /** Traversing all steps */
                     for (int k = 0; k < jSteps.length(); k++) {
+
                         String polyline = "";
                         polyline = (String) ((JSONObject) ((JSONObject) jSteps.get(k)).get("polyline")).get("points");
                         List<LatLng> list = decodePoly(polyline);
@@ -52,6 +62,7 @@ public class DataParser {
                         }
                     }
                     routes.add(path);
+                  //  routes.add(l_DD);
                 }
             }
         }//try

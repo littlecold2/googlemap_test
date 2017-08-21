@@ -188,7 +188,7 @@ public class MainActivity extends AppCompatActivity
             public void onClick(View view)
             {
                 for(int i=0;i<MarkerPoints.size()-1;i++) {
-                  //  tv.setText("");
+                    tv.setText("");
                     String url[] = getUrl(MarkerPoints.get(i), MarkerPoints.get(i+1));
                     fetchUrl fUrl = new fetchUrl();
                     fUrl.execute(url[0], url[1]);
@@ -485,33 +485,35 @@ public class MainActivity extends AppCompatActivity
     }
 
 
-    private class fetchUrl extends AsyncTask<String, Void, String[]>
+    private class fetchUrl extends AsyncTask<String, Void, String>
 
     {
-        protected String[] doInBackground(String... url)
+        protected String doInBackground(String... url)
         {
-            String[] data = {"",""};
+            String data="";
             try {
-                data[0] = downloadUrl(url[0]);
-                data[1] = downloadUrl(url[1]);
+                data = downloadUrl(url[0]);
+//                data[1] = downloadUrl(url[1]);
 
-                Log.d("dD", data[0].toString());
-                Log.d("dD", data[1].toString());
+//                Log.d("dD", data[0].toString());
+//                Log.d("dD", data[1].toString());
             } catch (Exception e) {
                 Log.d("Background Task", e.toString());
             }
             return data;
 
         }
-        protected void onPostExecute(String[] result){
+        protected void onPostExecute(String result){
             super.onPostExecute(result);
             ParserTask parserTask = new ParserTask();
             parserTask.execute(result);
 
-            Intent MyIntent = new Intent(getApplicationContext(),Urltextview.class);
+//            Intent MyIntent = new Intent(getApplicationContext(),Urltextview.class);
+//
+//            MyIntent.putExtra("url",result[1]+ "\n\n\n************\n\n\n" + result[0]);
+//            startActivity(MyIntent);
+//
 
-            MyIntent.putExtra("url",result[1]+ "\n\n\n************\n\n\n" + result[0]);
-            startActivity(MyIntent);
             //Log.d("Ftext", result[0]);
             //Log.d("Ftext", result[1]);
         }
@@ -523,13 +525,13 @@ public class MainActivity extends AppCompatActivity
         @Override
         protected List<List<HashMap<String, String>>> doInBackground(String... jsonData) {
 
-            JSONObject jObject_route, jObject_DD;
+            JSONObject jObject_route;
             List<List<HashMap<String,String >>> routes = null;
-            List<List<String>> DD;
+//            List<List<String>> DD;
 
             try {
                 jObject_route = new JSONObject(jsonData[0]);
-                jObject_DD = new JSONObject((jsonData[1]));
+                //jObject_DD = new JSONObject((jsonData[1]));
 
                 Log.d("ParserTask",jsonData[0].toString());
                 DataParser parser = new DataParser();
@@ -537,19 +539,6 @@ public class MainActivity extends AppCompatActivity
 
                 // Starts parsing data
                 routes = parser.parse(jObject_route);
-                DD = parser.parse_DT(jObject_DD);
-                String sDD ="";
-                Log.d("ParserTask","DDsize: " +DD.get(0).size());
-                for(int i=0;i<DD.get(0).size();i++) {
-                    sDD = DD.get(0).get(i)+" "+DD.get(1).get(i);
-//                    s_DD = DD.get(0).get(i) + " " + DD.get(1).get(i) + "\n";
-                    // s_DD.concat(DD.get(0).get(i)+"\n"+DD.get(1).get(i));
-                  //  Log.d("l_s_DD", sDD);
-
-//                    Log.d("DisDur_main",DD.get(0).get(i)+"\n"+DD.get(1).get(i));
-                }
-               // Log.d("l_s_DD", "sDD: "+sDD);
-                l_s_DD.add(sDD);
 
                 Log.d("ParserTask","Executing routes");
                 Log.d("ParserTask",routes.toString());
@@ -567,21 +556,8 @@ public class MainActivity extends AppCompatActivity
             ArrayList<LatLng> points;
             PolylineOptions lineOptions = null;
 
-            DD_cnt++;
-            Log.d("l_s_DD","cnt: " + DD_cnt);
-            Log.d("l_s_DD", "size :" + l_s_DD.size());
-           // Log.d("l_s_DD","l_s_DD[0]: " + l_s_DD.get(0));
-
-            if(DD_cnt == l_s_DD.size()) {
-//                tv.setGravity(Gravity.LEFT);
-                tv.setText("1: " + l_s_DD.get(0)+"\n");
-                Log.d("l_s_DD","l_s_DD[0]: " + l_s_DD.get(0));
-                for (int i = 1; i < l_s_DD.size(); i++) {
-                    Log.d("l_s_DD","l_s_DD["+i+"]: " + l_s_DD.get(i));
-                    tv.append(i+1+": " + l_s_DD.get(i)+"\n");
-                }
-            }
             // Traversing through all the routes
+
             for (int i = 0; i < result.size(); i++) {
                 points = new ArrayList<>();
                 lineOptions = new PolylineOptions();
@@ -589,26 +565,36 @@ public class MainActivity extends AppCompatActivity
                 // Fetching i-th route
                 List<HashMap<String, String>> path = result.get(i);
 
+
+                Log.d("d_parsing", "path size: " + Integer.toString(path.size()));
                 // Fetching all the points in i-th route
+
                 for (int j = 0; j < path.size(); j++) {
                     HashMap<String, String> point = path.get(j);
 
-                    double lat = Double.parseDouble(point.get("lat"));
-                    double lng = Double.parseDouble(point.get("lng"));
-                    LatLng position = new LatLng(lat, lng);
+                    if(point.containsKey("Distance")||point.containsKey("Duration")) {
+                        String Dis = point.get("Distance");
+                        String Dur = point.get("Duration");
+                        tv.append(Dis + " , " + Dur + "\n");
+                    }
+                    else{
+                        double lat = Double.parseDouble(point.get("lat"));
+                        double lng = Double.parseDouble(point.get("lng"));
+                        LatLng position = new LatLng(lat, lng);
+//                        Log.d("d_parsing", "lat: " + Double.toString(lat) + "  lng:" + Double.toString(lng));
+                        points.add(position);
+                    }
 
-                    points.add(position);
-                }
-
+                } // for
                 // Adding all the points in the route to LineOptions
-                lineOptions.addAll(points);
-                lineOptions.width(10);
-                lineOptions.color(Color.rgb(33,142,233));//8EC7fF
+//                    lineOptions.addAll(points);
+                    lineOptions.addAll(points);
+                    lineOptions.width(10);
+                    lineOptions.color(Color.rgb(33, 142, 233));//8EC7fF
 
                 Log.d("onPostExecute","onPostExecute lineoptions decoded");
 
             }
-
             // Drawing polyline in the Google Map for the i-th route
             if(lineOptions != null) {
                 map.addPolyline(lineOptions);
