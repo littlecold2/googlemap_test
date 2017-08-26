@@ -73,6 +73,24 @@ public class DataParser {
         }
         return routes;
     }
+    public List<String> R_geocoding(JSONObject jObject)
+    {
+        List<String> f_a= new ArrayList<>();
+        JSONArray jResults;
+        JSONArray jAddress;
+        try {
+            jResults = jObject.getJSONArray("results");
+            jAddress = ((JSONObject)jResults.get(0)).getJSONArray("address_components");
+            f_a.add(((JSONObject)(jAddress.get(0))).get("long_name").toString()+" " +((JSONObject)(jAddress.get(1))).get("long_name").toString());
+            f_a.add(((JSONObject)jResults.get(0)).get("formatted_address").toString());
+            Log.d("R_g", f_a.get(0) );
+
+        } catch (JSONException e) {
+            e.printStackTrace();
+            Log.d("R_g","R_g error");
+        }
+        return f_a;
+    }
 
     public List<List<String>> parse_DT(JSONObject jObject)
     {
