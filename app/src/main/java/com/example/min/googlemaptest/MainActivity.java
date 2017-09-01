@@ -12,6 +12,7 @@ import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.AsyncTask;
+import android.os.StrictMode;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
@@ -60,6 +61,8 @@ import javax.net.ssl.HttpsURLConnection;
 import com.google.android.gms.location.places.Place;
 import com.google.android.gms.location.places.ui.PlacePicker;
 
+import static android.os.StrictMode.setThreadPolicy;
+
 public class MainActivity extends AppCompatActivity
         implements
         GoogleMap.OnMyLocationButtonClickListener,
@@ -69,7 +72,7 @@ public class MainActivity extends AppCompatActivity
     private GoogleMap map;
     private boolean mPermissionDenied = false;
 
-
+    private Socket_Controller SC;
 
     private Location lastKnownLocation = null ;
 
@@ -113,9 +116,13 @@ public class MainActivity extends AppCompatActivity
         l_s_DD.clear();
         MarkerPoints = new ArrayList<>();
         MarkerPoints.clear();
+
+        SC = new Socket_Controller("18,211.35.217",9000);
 //        String url = getUrl(M1,M2);
 //        fetchUrl fUrl = new fetchUrl();
 //        fUrl.execute(url);
+        StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build(); setThreadPolicy(policy); // 소켓 쓰레드나 백그라운드?는 모르겟는데 로 해야된다 원래
+
 
 //
 
@@ -196,6 +203,7 @@ public class MainActivity extends AppCompatActivity
         { @Override
             public void onClick(View view)
             {
+                SC.connectServer("18.221.35.217",9000);
                 for(int i=0;i<MarkerPoints.size()-1;i++) {
                     tv.setText("");
                     String url = getUrl(MarkerPoints.get(i), MarkerPoints.get(i+1));
@@ -429,15 +437,15 @@ public class MainActivity extends AppCompatActivity
 //        Log.d("l_d",a.format(date));
 
         //derection
-        url = "https://maps.googleapis.com/maps/api/directions/json?" +  str_origin +"&"+str_dest +"&mode=transit"+"&alternatives=true"+  "&key=AIzaSyDIPfmJXw78A2tKbCtGZekNxAQcli7eoLM";
+        url = "https://maps.googleapis.com/maps/api/directions/json?" +  str_origin +"&"+str_dest +"&mode=transit"+"&alternatives=true"+  "&key=AIzaSyAKq5CUx3CsSpnWt-Ls7P_SPzCtz6FpVRE ";
         return url;
-    }
+}
     private String getUrl(LatLng place)
     {
         String url = "";
         String latlng_place = "latlng=" + place.latitude + "," + place.longitude;
         Log.d("latlng",latlng_place);
-        url = "https://maps.googleapis.com/maps/api/geocode/json?" + latlng_place + "&key=AIzaSyCm03LatWFr4wpLYSOnVqHZdjsNPc8hvi0";
+        url = "https://maps.googleapis.com/maps/api/geocode/json?" + latlng_place + "&key=AIzaSyAqvBEwiML_d6OFoDf35dhxDc-V_5pMVfc";
        // http://maps.googleapis.com/maps/api/geocode/json?latlng=40.714224,-73.961452&key=AIzaSyCm03LatWFr4wpLYSOnVqHZdjsNPc8hvi0 - PC
         return url;
     }
