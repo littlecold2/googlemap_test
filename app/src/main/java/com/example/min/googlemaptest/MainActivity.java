@@ -12,13 +12,16 @@ import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.AsyncTask;
+import android.os.Build;
 import android.os.StrictMode;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.text.Editable;
 import android.text.Html;
+import android.text.TextWatcher;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -49,6 +52,8 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.PrintWriter;
+import java.net.Socket;
 import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -56,12 +61,17 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.Delayed;
+import java.util.concurrent.RunnableFuture;
 
 import javax.net.ssl.HttpsURLConnection;
 import com.google.android.gms.location.places.Place;
 import com.google.android.gms.location.places.ui.PlacePicker;
+import com.google.gson.Gson;
 
 import static android.os.StrictMode.setThreadPolicy;
+import static junit.framework.Assert.assertEquals;
+import static junit.framework.Assert.assertNotNull;
 
 public class MainActivity extends AppCompatActivity
         implements
@@ -76,7 +86,7 @@ public class MainActivity extends AppCompatActivity
 
     private Location lastKnownLocation = null ;
 
-
+    int sv_key=0;
     int L_cnt=0;
     int ccnt=0;
     ArrayList<LatLng> MarkerPoints; // 마커 저장
@@ -92,13 +102,25 @@ public class MainActivity extends AppCompatActivity
             new LatLng(37.56, 126.98), new LatLng(37.57, 127.02));
 
     TextView tv;
-    String s_DD=" ";
     List<String> l_s_DD;
-    private int DD_cnt=0;
     private  int gps_cnt=0;
 
     private static final int PLACE_PICKER_REQUEST =1;
     private static final int LOCATION_PERMISSION_REQUEST_CODE = 1;
+
+//    @Override
+//    protected void onPause() {
+//        super.onPause();
+//        Log.d("D_sock","destroy");
+//        try {
+//            SC.s.close();
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
+//
+//    }
+
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -116,13 +138,35 @@ public class MainActivity extends AppCompatActivity
         l_s_DD.clear();
         MarkerPoints = new ArrayList<>();
         MarkerPoints.clear();
+//        SC = new Socket_Controller("13.124.63.18",9000);
+//        SC.run();
 
-        SC = new Socket_Controller("18,211.35.217",9000);
+
+        tv.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                s.toString().length();
+
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+
+            }
+        });
+
+
+
+
 //        String url = getUrl(M1,M2);
 //        fetchUrl fUrl = new fetchUrl();
 //        fUrl.execute(url);
-        StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build(); setThreadPolicy(policy); // 소켓 쓰레드나 백그라운드?는 모르겟는데 로 해야된다 원래
-
+//        StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build(); setThreadPolicy(policy);
 
 //
 
@@ -203,13 +247,13 @@ public class MainActivity extends AppCompatActivity
         { @Override
             public void onClick(View view)
             {
-                SC.connectServer("18.221.35.217",9000);
                 for(int i=0;i<MarkerPoints.size()-1;i++) {
                     tv.setText("");
                     String url = getUrl(MarkerPoints.get(i), MarkerPoints.get(i+1));
                     fetchUrl fUrl = new fetchUrl();
                     fUrl.execute(url);
                 }
+
             }
         });
 
@@ -221,7 +265,6 @@ public class MainActivity extends AppCompatActivity
             map.clear();
             l_s_DD.clear();
             tv.setText("Distance, Duration");
-            DD_cnt=0;
 
             if(L_cnt==0) {
                 L_cnt++;
@@ -282,7 +325,11 @@ public class MainActivity extends AppCompatActivity
         MarkerPoints.add(LL);
     } // pickMark
 
-//////////////////////////// My Location start
+
+
+
+
+///////////////////////////////////////////////////////////////////// My Location start
 
 
     LocationListener locationListener = new LocationListener() {
@@ -292,7 +339,7 @@ public class MainActivity extends AppCompatActivity
             LocationManager lm = (LocationManager)getSystemService(Context.LOCATION_SERVICE);
             // Get the last location.
             lastKnownLocation = location;
-
+            Log.d("loc_d",lastKnownLocation.toString());
             lm.requestLocationUpdates(
                     LocationManager.NETWORK_PROVIDER,
                     1000,
@@ -301,6 +348,14 @@ public class MainActivity extends AppCompatActivity
             );
             tv.setText(String.format(Locale.KOREA,"%.3f",lastKnownLocation.getLatitude())+ " , "+ String.format(Locale.KOREA,"%.3f",lastKnownLocation.getLongitude()));
             Toast.makeText(getApplicationContext(), String.format(Locale.KOREA,"%.3f",lastKnownLocation.getLatitude())+ " , "+ String.format(Locale.KOREA,"%.3f",lastKnownLocation.getLongitude()), Toast.LENGTH_SHORT).show();
+            if(sv_key==0&& lastKnownLocation.hasAltitude()) {
+                SC.start();
+                Gsonize(Build.USER,lastKnownLocation.getLatitude(),lastKnownLocation.getLongitude());
+                sv_key=1;
+            }
+
+
+//            Toast.makeText(getApplicationContext(), SC.sendMessage(lastKnownLocation.getLatitude(),lastKnownLocation.getLongitude()),Toast.LENGTH_SHORT).show();
            // lm.removeUpdates(locationListener);
 
         }// onLocationChanged
@@ -323,18 +378,23 @@ public class MainActivity extends AppCompatActivity
         if(!lm.isProviderEnabled(LocationManager.GPS_PROVIDER))
         {
             Toast.makeText(this, "GPS 켜지지않음", Toast.LENGTH_SHORT).show();
+
             return false;
         }
         lm.requestLocationUpdates(LocationManager.NETWORK_PROVIDER,0,0,locationListener);
         if(gps_cnt==0) {
             Toast.makeText(this, "GPS 추적 ON", Toast.LENGTH_SHORT).show();
+            SC = new Socket_Controller("13.124.63.18",9000);
             gps_cnt++;
         }
         else
         {
             lm.removeUpdates(locationListener);
+         //   SC.interrupt();
             Toast.makeText(this, "GPS 추적 OFF", Toast.LENGTH_SHORT).show();
+            sv_key=0;
             gps_cnt=0;
+
         }
         return false;
     }
@@ -649,5 +709,152 @@ public class MainActivity extends AppCompatActivity
 
     }// ParserTask
 // url 보내고 받아서 파싱 하는 부분 끝
-}
+
+    class Socket_Controller extends Thread{
+
+        private Socket s;
+        private BufferedReader inMsg;
+        private PrintWriter outMsg;
+
+        private String a_targetIp;
+        private int a_targetPort;
+
+
+        protected void finalize() throws Throwable
+        {
+            s.close();
+        }
+        Socket_Controller(String ip,int port )
+        {
+            a_targetIp = ip;
+            a_targetPort = port;
+            Log.d("D_socket", a_targetIp+ " " +String.format(Locale.KOREA,"%d",a_targetPort));
+//        this.connectServer(a_targetIp,a_targetPort);
+
+        }
+        Socket_Controller()
+        {
+        }
+
+        public void run()
+        {
+            Log.d("D_socket", a_targetIp+ " " +String.format(Locale.KOREA,"%d",a_targetPort));
+            connectServer(a_targetIp,a_targetPort);
+//        sendMessage()
+            while(s!=null)
+            {
+                Log.d("D_socket","sleep");
+                try {
+                    Thread.sleep(2000);
+//                    Log.d("D_socket","lklt: "+lastKnownLocation);
+                    sendMessage(lastKnownLocation.getLatitude(),lastKnownLocation.getLongitude());
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+//            try {
+//                s.close();
+//            } catch (IOException e) {
+//                e.printStackTrace();
+//            }
+
+        }
+        public void connectServer(String targetIp,int targetPort)
+        {
+            try{
+                // 소켓 생성
+                if((s = new Socket(targetIp,targetPort))==null)
+                {
+                  //  Toast.makeText(getApplicationContext(), "[Client]Server 연결 실패!!", Toast.LENGTH_SHORT).show();
+                    Log.d("D_socket", "[Client]Server 연결 성공!!");
+                    return;
+                }
+                else {
+                 //   Toast.makeText(getApplicationContext(), "[Client]Server 연결 성공!!", Toast.LENGTH_SHORT).show();
+                    Log.d("D_socket", "[Client]Server 연결 성공!!");
+
+                }
+                // 입출력 스트림 생성
+                inMsg = new BufferedReader(new InputStreamReader(s.getInputStream()));
+                outMsg = new PrintWriter(s.getOutputStream(),true);
+                outMsg.println(Build.USER);
+                Log.d("D_socket", Build.USER);
+                // 서버에 로그인 메시지 전달
+
+//            m.setId(v.id);
+//            m.setType("login");
+
+                //System.out.println(mL.getId()+"");
+                //System.out.println(mL.getType()+"");
+                //System.out.println(mL.getRoom()+"");
+
+//            outMsg.println(gson.toJson(m)); // 출력 스트림으로 mL에 담은 메시지를 Json형식으로 해서 보낸다. 쓴다.
+
+                // 메시지 수신을 위한 스레드 생성
+
+
+            }catch(Exception e) {
+                Log.d("D_socket", "Error : " + e);
+                //Toast.makeText(getApplicationContext(), "[Client]Server 연결 실패!!", Toast.LENGTH_SHORT).show();
+                //e.printStackTrace();
+                //return;
+            }
+        }// connectServer()
+
+        public String sendMessage(Double Lat, Double Lng )
+        {
+            String inmsg="";
+
+            if(!s.isConnected() )
+            {
+                Toast.makeText(getApplicationContext(), "[Client]Server 연결 실패!!", Toast.LENGTH_SHORT).show();
+                return "[Client]Server 연결 실패!!";
+            }
+//            inMsg.read(inmsg,0,512);
+            try {
+                outMsg.println(String.format(Locale.KOREA,"%f",Lat)+","+String.format(Locale.KOREA,"%f",Lng));
+                inmsg = inMsg.readLine();
+                Log.d("c_S",Integer.toString(inmsg.length()));
+              //  Log.d("c_S",inmsg);
+
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            return inmsg;
+        }
+
+
+
+
+    }
+    public void Gsonize(String name, Double lat,  Double lng)
+    {
+        String data=  "{" +
+
+                "\"latitude\":\""+ lat.toString() +"\"," +
+
+                "\"longitude\":\""+ lng.toString() + "\"," +
+
+                "\"name\":\""+ name +"\"" +
+
+                "}";
+
+
+
+        String json = new Gson().toJson(new Userdata(name,lat,lng));
+        Log.d("gson",json);
+       // assertNotNull(json);
+       // assertEquals(json,data);
+
+        Userdata obj = new Gson().fromJson(data,Userdata.class);
+        Log.d("gson",obj.getName());
+
+        //assertEquals(Build.USER,obj.getName());
+
+    }
+
+}//main
+
+
 
