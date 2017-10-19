@@ -53,6 +53,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
+import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.URL;
 import java.text.SimpleDateFormat;
@@ -103,6 +104,7 @@ public class MainActivity extends AppCompatActivity
 
     TextView tv;
     List<String> l_s_DD;
+    String msg;
     private  int gps_cnt=0;
 
     private static final int PLACE_PICKER_REQUEST =1;
@@ -159,8 +161,12 @@ public class MainActivity extends AppCompatActivity
 
             }
         });
-
-
+//        try {
+//            ServerSocket ss = new ServerSocket(9000);
+//            ss.getInetAddress()
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
 
 
 //        String url = getUrl(M1,M2);
@@ -247,6 +253,9 @@ public class MainActivity extends AppCompatActivity
         { @Override
             public void onClick(View view)
             {
+                SC = new Socket_Controller("13.124.63.18",9000);
+                SC.start();
+
                 for(int i=0;i<MarkerPoints.size()-1;i++) {
                     tv.setText("");
                     String url = getUrl(MarkerPoints.get(i), MarkerPoints.get(i+1));
@@ -350,7 +359,7 @@ public class MainActivity extends AppCompatActivity
             Toast.makeText(getApplicationContext(), String.format(Locale.KOREA,"%.3f",lastKnownLocation.getLatitude())+ " , "+ String.format(Locale.KOREA,"%.3f",lastKnownLocation.getLongitude()), Toast.LENGTH_SHORT).show();
             if(sv_key==0&& lastKnownLocation.hasAltitude()) {
                 SC.start();
-                Gsonize(Build.USER,lastKnownLocation.getLatitude(),lastKnownLocation.getLongitude());
+                //msg=Jsonize(Build.USER,lastKnownLocation.getLatitude(),lastKnownLocation.getLongitude());
                 sv_key=1;
             }
 
@@ -748,6 +757,7 @@ public class MainActivity extends AppCompatActivity
                     Thread.sleep(2000);
 //                    Log.d("D_socket","lklt: "+lastKnownLocation);
                     sendMessage(lastKnownLocation.getLatitude(),lastKnownLocation.getLongitude());
+                  //  sendMessage(12131.13131,222.123213);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
@@ -766,18 +776,18 @@ public class MainActivity extends AppCompatActivity
                 if((s = new Socket(targetIp,targetPort))==null)
                 {
                   //  Toast.makeText(getApplicationContext(), "[Client]Server 연결 실패!!", Toast.LENGTH_SHORT).show();
-                    Log.d("D_socket", "[Client]Server 연결 성공!!");
+                    Log.d("D_socket", "[Client]Server 연결 성공1!!");
                     return;
                 }
                 else {
                  //   Toast.makeText(getApplicationContext(), "[Client]Server 연결 성공!!", Toast.LENGTH_SHORT).show();
-                    Log.d("D_socket", "[Client]Server 연결 성공!!");
+                    Log.d("D_socket", "[Client]Server 연결 성공2!!");
 
                 }
                 // 입출력 스트림 생성
                 inMsg = new BufferedReader(new InputStreamReader(s.getInputStream()));
                 outMsg = new PrintWriter(s.getOutputStream(),true);
-                outMsg.println(Build.USER);
+               // outMsg.println(Build.USER);
                 Log.d("D_socket", Build.USER);
                 // 서버에 로그인 메시지 전달
 
@@ -812,7 +822,11 @@ public class MainActivity extends AppCompatActivity
             }
 //            inMsg.read(inmsg,0,512);
             try {
-                outMsg.println(String.format(Locale.KOREA,"%f",Lat)+","+String.format(Locale.KOREA,"%f",Lng));
+                //outMsg.println(String.format(Locale.KOREA,"%f",Lat)+","+String.format(Locale.KOREA,"%f",Lng));
+                //Log.d("c_S","start");
+                msg = Jsonize(Build.USER,Lat,Lng);
+                //Log.d("c_S","start");
+                outMsg.println(msg);
                 inmsg = inMsg.readLine();
                 Log.d("c_S",Integer.toString(inmsg.length()));
               //  Log.d("c_S",inmsg);
@@ -828,17 +842,17 @@ public class MainActivity extends AppCompatActivity
 
 
     }
-    public void Gsonize(String name, Double lat,  Double lng)
+    public String Jsonize(String name, Double lat,  Double lng)
     {
-        String data=  "{" +
-
-                "\"latitude\":\""+ lat.toString() +"\"," +
-
-                "\"longitude\":\""+ lng.toString() + "\"," +
-
-                "\"name\":\""+ name +"\"" +
-
-                "}";
+//        String data=  "{" +
+//
+//                "\"latitude\":\""+ lat.toString() +"\"," +
+//
+//                "\"longitude\":\""+ lng.toString() + "\"," +
+//
+//                "\"name\":\""+ name +"\"" +
+//
+//                "}";
 
 
 
@@ -847,10 +861,11 @@ public class MainActivity extends AppCompatActivity
        // assertNotNull(json);
        // assertEquals(json,data);
 
-        Userdata obj = new Gson().fromJson(data,Userdata.class);
-        Log.d("gson",obj.getName());
+       // Userdata obj = new Gson().fromJson(data,Userdata.class);
+        //Log.d("gson",obj.getName());
 
         //assertEquals(Build.USER,obj.getName());
+        return json;
 
     }
 
