@@ -9,6 +9,11 @@ public class Userdata {
     private Double latitude;
     private Double longitude;
 
+    Userdata()
+    {
+
+    }
+
     Userdata(String name, Double lat,Double lng)
     {
         this.name = name;
@@ -18,6 +23,14 @@ public class Userdata {
     String getName()
     {
         return name;
+    }
+    Double getLat()
+    {
+        return latitude;
+    }
+    Double getLng()
+    {
+        return longitude;
     }
 
 }
