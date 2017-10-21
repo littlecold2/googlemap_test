@@ -309,6 +309,38 @@ public class MainActivity extends AppCompatActivity
         }
         });
     }
+    /////////////////////// Google place PlacePicker
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) // PlacePicker 끝날 때 정보 받아오기
+    {
+        if(requestCode == PLACE_PICKER_REQUEST && resultCode == Activity.RESULT_OK)
+        {
+            final Place place = PlacePicker.getPlace(this, data); // 정보 받아오기
+            final CharSequence name = place.getName();
+            final CharSequence address = place.getAddress();
+
+
+            String attributions = (String) place.getAttributions();
+            if (attributions == null) {
+                attributions = "";
+            }
+
+            pickMark(place.getLatLng(),name.toString(),address.toString()); // 받아온 정보에서 위치, 이름 , 주소 받아와서 마크 찍기
+
+            tv.setText("");
+            tv.append("name : " + name + "\n");
+            tv.append("address\n" + address+"\n"); // 텍스트 뷰에 띄우기
+            Log.d("Place_Pick","1");
+            tv.append(Html.fromHtml(attributions));
+            Log.d("Place_Pick","2");
+            Log.d("Place_Pick",attributions);
+            map.moveCamera(CameraUpdateFactory.newLatLng(place.getLatLng()));
+            map.animateCamera(CameraUpdateFactory.zoomTo(13));
+        }
+        else {
+            super.onActivityResult(requestCode, resultCode, data);
+        }
+    } // 구글 플레이스 정보 가져오기
+
 
     private void pickMark(final LatLng LL,String name, String address) // 위도 경도, 이름 주소 받아서 마커 찍는 함수
     {
@@ -347,21 +379,21 @@ public class MainActivity extends AppCompatActivity
 
     LocationListener locationListener = new LocationListener() {
         @Override
-        public void onLocationChanged(Location location) {
+        public void onLocationChanged(Location location) {  // 위치정보 바뀔때마다 이 함수 불러옴
 
             LocationManager lm = (LocationManager)getSystemService(Context.LOCATION_SERVICE);
             // Get the last location.
-            lastKnownLocation = location;
+            lastKnownLocation = location; // 업데이트 된 주소 저장
             Log.d("loc_d",lastKnownLocation.toString());
             lm.requestLocationUpdates(
-                    LocationManager.NETWORK_PROVIDER,
-                    1000,
-                    10,
+                    LocationManager.NETWORK_PROVIDER, // 네트워크+gps 이용 업데이트
+                    1000, //1초마다
+                    10, // 최소 거리 10미터
                     locationListener
             );
-            if(SC.s==null)
+            if(SC.s==null) // 서버와 연결 안됬으면 현재 위치 텍스트뷰에
                 tv.setText(String.format(Locale.KOREA,"%.3f",lastKnownLocation.getLatitude())+ " , "+ String.format(Locale.KOREA,"%.3f",lastKnownLocation.getLongitude()));
-            else {
+            else { // 서버 연결 됫으면 메세지 받은 걸 텍스트 뷰에 뿌림
                 tv.setText("");
                 for(Userdata ud:message_List) {
                     tv.append("name: " + ud.getName() + " lat: " + ud.getLat() + " lng: " + ud.getLng()+"\n");
@@ -369,8 +401,8 @@ public class MainActivity extends AppCompatActivity
                 Toast.makeText(getApplicationContext(),"메시지 받음",Toast.LENGTH_SHORT).show();
             }
            // Toast.makeText(getApplicationContext(), String.format(Locale.KOREA,"%.3f",lastKnownLocation.getLatitude())+ " , "+ String.format(Locale.KOREA,"%.3f",lastKnownLocation.getLongitude()), Toast.LENGTH_SHORT).show();
-            if(sv_key==0&& lastKnownLocation.hasAltitude()) {
-                SC.start();
+            if(sv_key==0&& lastKnownLocation.hasAltitude()) { // lastKnownLocation이 위치를 받아왔고  키가 0이면 소켓통신 스타트
+                SC.start(); // 소켓통신 관련 쓰레드함수 시작
 
                 //msg=Jsonize(Build.USER,lastKnownLocation.getLatitude(),lastKnownLocation.getLongitude());
                 sv_key=1;
@@ -383,7 +415,9 @@ public class MainActivity extends AppCompatActivity
         }// onLocationChanged
 
         @Override
-        public void onProviderDisabled(String provider) {
+        public void onProviderDisabled(String provider) { // gps꺼져잇을때
+
+            Toast.makeText(getApplicationContext(), "GPS 꺼짐", Toast.LENGTH_SHORT).show();
         }
         @Override
         public void onProviderEnabled(String provider) {
@@ -395,11 +429,11 @@ public class MainActivity extends AppCompatActivity
 
 // about location button
     @Override
-    public boolean onMyLocationButtonClick() {
+    public boolean onMyLocationButtonClick() { // 위치 추적 버튼 누를때
         LocationManager lm = (LocationManager)getSystemService(Context.LOCATION_SERVICE);
-        if(!lm.isProviderEnabled(LocationManager.GPS_PROVIDER))
+        if(!lm.isProviderEnabled(LocationManager.GPS_PROVIDER)) //GPS 없을때
         {
-            Toast.makeText(this, "GPS 켜지지않음", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "GPS 켜지지않음, GPS를 켜주세요.", Toast.LENGTH_SHORT).show();
 
             return false;
         }
@@ -409,7 +443,7 @@ public class MainActivity extends AppCompatActivity
             SC = new Socket_Controller("13.124.63.18",9000);
             gps_cnt++;
         }
-        else
+        else // gps끌때 소켓통신 종료, 추적 종료
         {
             lm.removeUpdates(locationListener);
          //   SC.interrupt();
@@ -423,7 +457,7 @@ public class MainActivity extends AppCompatActivity
         return false;
     }
 
-
+//////////////////////////  위치정보 권한 관련
     private void enableMyLocation() {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
                  != PackageManager.PERMISSION_GRANTED) {
@@ -468,39 +502,9 @@ public class MainActivity extends AppCompatActivity
                 .newInstance(true).show(getSupportFragmentManager(), "dialog");
     }
 
-/////////////////////// about Location buttoon
-
-/////////////////////// Google place
-    protected void onActivityResult(int requestCode, int resultCode, Intent data)
-    {
-        if(requestCode == PLACE_PICKER_REQUEST && resultCode == Activity.RESULT_OK)
-        {
-            final Place place = PlacePicker.getPlace(this, data);
-            final CharSequence name = place.getName();
-            final CharSequence address = place.getAddress();
+///////////////////////
 
 
-            String attributions = (String) place.getAttributions();
-            if (attributions == null) {
-                attributions = "";
-            }
-
-            pickMark(place.getLatLng(),name.toString(),address.toString());
-
-            tv.setText("");
-            tv.append("name : " + name + "\n");
-            tv.append("address\n" + address+"\n");
-            Log.d("Place_Pick","1");
-            tv.append(Html.fromHtml(attributions));
-            Log.d("Place_Pick","2");
-            Log.d("Place_Pick",attributions);
-            map.moveCamera(CameraUpdateFactory.newLatLng(place.getLatLng()));
-            map.animateCamera(CameraUpdateFactory.zoomTo(13));
-        }
-        else {
-            super.onActivityResult(requestCode, resultCode, data);
-        }
-    } // 구글 플레이스 정보 가져오기
 
 
 // https://maps.googleapis.com/maps/api/directions/outputFormat?parameters
@@ -508,7 +512,7 @@ public class MainActivity extends AppCompatActivity
     // origin=41.43206,-81.38992
 
     // url 보내고 받아서 파싱 하는 부분 시작
-    private String getUrl(LatLng origin, LatLng dest)
+    private String getUrl(LatLng origin, LatLng dest) // 위치 두개 받아서 길찾기 URL 형식으로 바꿈  // 키 필요   Google Direction APi 이용
     {
         String url = "";
         String str_origin = "origin=" + origin.latitude + "," + origin.longitude;
@@ -524,7 +528,7 @@ public class MainActivity extends AppCompatActivity
         url = "https://maps.googleapis.com/maps/api/directions/json?" +  str_origin +"&"+str_dest +"&mode=transit"+"&alternatives=true"+  "&key=AIzaSyAKq5CUx3CsSpnWt-Ls7P_SPzCtz6FpVRE ";
         return url;
 }
-    private String getUrl(LatLng place)
+    private String getUrl(LatLng place) // 위치 하나 받아서 그 위치정보 받아오는 역지오코딩 형식으로 바꿈 // 키 필요
     {
         String url = "";
         String latlng_place = "latlng=" + place.latitude + "," + place.longitude;
@@ -533,7 +537,70 @@ public class MainActivity extends AppCompatActivity
        // http://maps.googleapis.com/maps/api/geocode/json?latlng=40.714224,-73.961452&key=AIzaSyCm03LatWFr4wpLYSOnVqHZdjsNPc8hvi0 - PC
         return url;
     }
-    private String downloadUrl(String strUrl) throws IOException
+
+
+    // 길찾기 할때 패치함
+    private class fetchUrl extends AsyncTask<String, Void, String> // AsyncTsk는 일종의 쓰레드 doInBackground 에서 PostExecute로 return값 넘겨줄수 있고, Post Execute는 ui컨트롤 부분 가능 Google Direction APi 이용
+    {
+        protected String doInBackground(String... url)
+        {
+            String data="";
+            try {
+                data = downloadUrl(url[0]); // URL 보내서 정보 받기
+            } catch (Exception e) {
+                Log.d("Background Task", e.toString());
+            }
+            return data;
+
+        }
+        protected void onPostExecute(String result){
+            super.onPostExecute(result);
+//            Intent MyIntent = new Intent(getApplicationContext(),Urltextview.class);
+//
+//            MyIntent.putExtra("url",result+ "\n\n\n************\n\n\n");
+//            startActivity(MyIntent);
+
+
+            ParserTask parserTask = new ParserTask();
+            parserTask.execute(result);
+
+        }
+    }// fetchUrl
+    private class fetch_RgeoUrl extends AsyncTask<String, String, String[]> // 역지오코딩 할 때 쓰는 패치 // 맵 클릭 했을때 위치정보 받아온느 역할
+    {
+        protected String[] doInBackground(String... URLnLL)
+        {
+            String[] data={"","",""};
+            try {
+                data[0] = downloadUrl(URLnLL[0]); //  만든 URL 이용 결과 다운로드 하는 함수
+                data[1] = URLnLL[1];// 맵 클릭해서 받아온 위도 저장
+                data[2] = URLnLL[2];// 맵 클릭해서 받아온 경도 저장
+                //data는 onPostExecute로 넘겨줄거
+            } catch (Exception e) {
+                Log.d("Background Task", e.toString());
+            }
+            return data;
+
+        }
+        protected void onPostExecute(String[] result){
+            super.onPostExecute(result);
+            JSONObject jObject;
+            List<String> Rgeo;
+            try {
+                jObject= new JSONObject(result[0]); // JSON으로 받은내용 오브젝트에 저장
+                DataParser parser = new DataParser(); // 파싱을 할 클래스 생성
+                LatLng LL = new LatLng(Double.parseDouble(result[1]),Double.parseDouble(result[2])); // 넘겨받은 위치정보 (위도경도)를 저장
+                Rgeo = parser.R_geocoding(jObject); // 역지오코딩으로 파싱한 결과를 저장
+                pickMark(LL,Rgeo.get(0),Rgeo.get(1)); // 파싱해 얻어온 내용 (이름, 주소)를 맵에 마커찍는다
+
+
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+        }
+    }// fetchRgeoUrl
+
+    private String downloadUrl(String strUrl) throws IOException // 만든 URL 보내서 관련 정보 받아오기
     {
         String data = "";
         InputStream iStream = null;
@@ -557,12 +624,12 @@ public class MainActivity extends AppCompatActivity
             StringBuffer sb = new StringBuffer();
 
             String line = "";
-            while((line = br.readLine()) != null)
+            while((line = br.readLine()) != null) // 다 읽을 때 까지 버퍼에 계속 넣기
             {
                 sb.append(line);
             }
 
-            data = sb.toString();
+            data = sb.toString(); // 버퍼에 쌓인 내용 저장
             Log.d("downloadUrl", data.toString());
             br.close();
 
@@ -580,72 +647,12 @@ public class MainActivity extends AppCompatActivity
         return data;
     }
 
-
-    private class fetchUrl extends AsyncTask<String, Void, String>
-    {
-        protected String doInBackground(String... url)
-        {
-            String data="";
-            try {
-                data = downloadUrl(url[0]);
-            } catch (Exception e) {
-                Log.d("Background Task", e.toString());
-            }
-            return data;
-
-        }
-        protected void onPostExecute(String result){
-            super.onPostExecute(result);
-//            Intent MyIntent = new Intent(getApplicationContext(),Urltextview.class);
-//
-//            MyIntent.putExtra("url",result+ "\n\n\n************\n\n\n");
-//            startActivity(MyIntent);
-
-
-            ParserTask parserTask = new ParserTask();
-            parserTask.execute(result);
-
-        }
-    }// fetchUrl
-    private class fetch_RgeoUrl extends AsyncTask<String, String, String[]>
-    {
-        protected String[] doInBackground(String... URLnLL)
-        {
-            String[] data={"","",""};
-            try {
-                data[0] = downloadUrl(URLnLL[0]);
-                data[1] = URLnLL[1];
-                data[2] = URLnLL[2];
-            } catch (Exception e) {
-                Log.d("Background Task", e.toString());
-            }
-            return data;
-
-        }
-        protected void onPostExecute(String[] result){
-            super.onPostExecute(result);
-            JSONObject jObject;
-            List<String> Rgeo;
-            try {
-                jObject= new JSONObject(result[0]);
-                DataParser parser = new DataParser();
-                LatLng LL = new LatLng(Double.parseDouble(result[1]),Double.parseDouble(result[2]));
-                Rgeo = parser.R_geocoding(jObject);
-                pickMark(LL,Rgeo.get(0),Rgeo.get(1));
-
-
-            } catch (JSONException e) {
-                e.printStackTrace();
-            }
-        }
-    }// fetchRgeoUrl
-
-    private class ParserTask extends AsyncTask<String,Integer,List<List<HashMap<String,String>>>>
+    private class ParserTask extends AsyncTask<String,Integer,List<List<HashMap<String,String>>>> // 맵에 길찾기 한 루트를 Polyline을 이용해 그려주고 소요시간, 거리 가져오는 함수 DataParser클래스를 이용해 JSON파싱한 내용을 이용한다. Google Direction APi 이용
     {
 
         @Override
         protected List<List<HashMap<String, String>>> doInBackground(String... jsonData) {
-
+//루트 관련 정보 저장
             JSONObject jObject_route;
             List<List<HashMap<String,String >>> routes = null;
 //            List<List<String>> DD;
@@ -690,13 +697,13 @@ public class MainActivity extends AppCompatActivity
                 Log.d("d_parsing", "path size: " + Integer.toString(path.size()));
                 // Fetching all the points in i-th route
 
-                for (int j = 0; j < path.size(); j++) {
+                for (int j = 0; j < path.size(); j++) { // 패스 수 많금 포문
                     HashMap<String, String> point = path.get(j);
 
-                    if(point.containsKey("Distance")||point.containsKey("Duration")) {
-                        String Dis = point.get("Distance");
-                        String Dur = point.get("Duration");
-                        tv.append(Dis + " , " + Dur + "\n");
+                    if(point.containsKey("Distance")||point.containsKey("Duration")) { // 거리나 소요시간 키를 가지고 있으면
+                        String Dis = point.get("Distance"); // 그 거리 정보 가져온다.
+                        String Dur = point.get("Duration"); // 그 소요시간 정보 가져온다.
+                        tv.append(Dis + " , " + Dur + "\n"); // 텍스트 뷰에 그 정보들 뿌려준다.
                     }
                     else{
                         double lat = Double.parseDouble(point.get("lat"));
@@ -734,21 +741,23 @@ public class MainActivity extends AppCompatActivity
     }// ParserTask
 // url 보내고 받아서 파싱 하는 부분 끝
 
+
+// 소켓통신 부분 시작
     class Socket_Controller extends Thread{
 
-        private Socket s;
-        private BufferedReader inMsg;
-        private PrintWriter outMsg;
+        private Socket s;   // 소켓통신할 소켓
+        private BufferedReader inMsg; // 받은 메시지 읽을 버퍼
+        private PrintWriter outMsg; // 메세지 보낼 라이터
 
-        private String a_targetIp;
-        private int a_targetPort;
+        private String a_targetIp; // 서버 ip
+        private int a_targetPort; // 서버 port
 
 
         protected void finalize() throws Throwable
         {
-            s.close();
+            s.close(); // 끝날때 소켓 닫음
         }
-        Socket_Controller(String ip,int port )
+        Socket_Controller(String ip,int port ) // 생성자로 ip,port받아서 넣음
         {
             a_targetIp = ip;
             a_targetPort = port;
@@ -760,18 +769,18 @@ public class MainActivity extends AppCompatActivity
         {
         }
 
-        public void run()
+        public void run() // 쓰레드 시작부분
         {
             Log.d("D_socket", a_targetIp+ " " +String.format(Locale.KOREA,"%d",a_targetPort));
-            connectServer(a_targetIp,a_targetPort);
+            connectServer(a_targetIp,a_targetPort); // 서버에 연결 하는 함수 받아온 ip.port 넘겨줌
 
-            while(s!=null)
+            while(s!=null) // 소켓연결이 되어있을경우 무한루프
             {
                 //Log.d("D_socket","sleep");
                 //try {
                 //    Thread.sleep(3000);
 //                    Log.d("D_socket","lklt: "+lastKnownLocation);
-                    sendMessage(lastKnownLocation.getLatitude(),lastKnownLocation.getLongitude());
+                    sendMessage(lastKnownLocation.getLatitude(),lastKnownLocation.getLongitude()); // 서버에 현재 위치정보 담아서 보냄
                   //  sendMessage(12131.13131,222.123213);
                 //} catch (InterruptedException e) {
                  //   e.printStackTrace();
@@ -785,28 +794,28 @@ public class MainActivity extends AppCompatActivity
 
 
         }
-        public void connectServer(String targetIp,int targetPort)
+        public void connectServer(String targetIp,int targetPort) // 서버에 연결하는부분
         {
             try{
                 // 소켓 생성
-                if((s = new Socket(targetIp,targetPort))==null)
+                if((s = new Socket(targetIp,targetPort))==null) // 소켓연결 성공 실패시
                 {
                   //  Toast.makeText(getApplicationContext(), "[Client]Server 연결 실패!!", Toast.LENGTH_SHORT).show();
-                    Log.d("D_socket", "[Client]Server 연결 성공1!!");
+                    Log.d("D_socket", "[Client]Server 연결 fail!!");
                     return;
                 }
                 else {
                  //   Toast.makeText(getApplicationContext(), "[Client]Server 연결 성공!!", Toast.LENGTH_SHORT).show();
-                    Log.d("D_socket", "[Client]Server 연결 성공2!!");
+                    Log.d("D_socket", "[Client]Server 연결 성공!!");
 
                 }
                 // 입출력 스트림 생성
-                inMsg = new BufferedReader(new InputStreamReader(s.getInputStream()));
-                outMsg = new PrintWriter(s.getOutputStream(),true);
+                inMsg = new BufferedReader(new InputStreamReader(s.getInputStream())); // 수신 메시지 담을 버퍼
+                outMsg = new PrintWriter(s.getOutputStream(),true); //송신 메시지 롸이터
                // outMsg.println(Build.USER);
                 Log.d("D_socket", Build.USER);
-                // 서버에 로그인 메시지 전달
-                Thread.sleep(3000);
+
+                Thread.sleep(3000); // 서버연결 됬을시 3초정도 쉼
 //            m.setId(v.id);
 //            m.setType("login");
 
@@ -816,7 +825,6 @@ public class MainActivity extends AppCompatActivity
 
 //            outMsg.println(gson.toJson(m)); // 출력 스트림으로 mL에 담은 메시지를 Json형식으로 해서 보낸다. 쓴다.
 
-                // 메시지 수신을 위한 스레드 생성
 
 
             }catch(Exception e) {
@@ -827,15 +835,15 @@ public class MainActivity extends AppCompatActivity
             }
         }// connectServer()
 
-        public String sendMessage(Double Lat, Double Lng )
+        public String sendMessage(Double Lat, Double Lng ) // 서버에 메시지 보내는 함수
         {
-            String inmsg="";
-            Userdata m = new Userdata();
-            List<Userdata> L_m = new ArrayList<>();
-           // Userdata[] get_m ;
-            Gson gson = new Gson();
-         //   L_m.cl
-            if(!s.isConnected() )
+            String inmsg=""; // 받은 메시지 저장
+            Userdata m = new Userdata(); // 메시지 형식 프로토콜 클래스 (현재 이름, 위도, 경도)
+            List<Userdata> L_m = new ArrayList<>(); // 서버에서 주는 지금 접속해있는 클라이언트 위치정보 받을 메시지 리스트
+
+            Gson gson = new Gson(); // JSon 직렬화 해서 편하게 쓰는 Gson
+
+            if(s.isClosed() ) // 소켓 연경 안되잇으면
             {
                // Toast.makeText(getApplicationContext(), "[Client]Server 연결 실패!!", Toast.LENGTH_SHORT).show();
                 return "[Client]Server 연결 실패!!";
@@ -843,20 +851,20 @@ public class MainActivity extends AppCompatActivity
 //            inMsg.read(inmsg,0,512);
             try {
                 //outMsg.println(String.format(Locale.KOREA,"%f",Lat)+","+String.format(Locale.KOREA,"%f",Lng));
-                //Log.d("c_S","start");
-                msg = Jsonize(Build.USER,Lat,Lng);
 
-                //Log.d("c_S","start");
-                outMsg.println(msg);
-                inmsg = inMsg.readLine();
 
-//                Log.d("c_S",inmsg);
-             //   m = gson.fromJson(inmsg,Userdata.class);
-                  L_m = gson.fromJson(inmsg, new TypeToken<ArrayList<Userdata>>() {}.getType());
+                msg = Jsonize(Build.USER,Lat,Lng); // 단말기 유저, 위도, 경도정보를 JSON화 함. Gson 이용
+
+                outMsg.println(msg); // JSON화한 메시지를 서버로 보냄 (내정보, 내위치, 경도)
+                inmsg = inMsg.readLine(); // 내가 메시지 보낸 이후 서버에서 보낸 메시지 수신
+
+                 L_m = gson.fromJson(inmsg, new TypeToken<ArrayList<Userdata>>() {}.getType()); // 서버에서 받은 메시지(모든 클라이언트의 이름,위치 메시지 리스트)를 JSON->Gosn-> ArrayList<Userdata>로 해서 저장
+                 message_List = L_m; // 전역변수에 그 받은 리스트 데이터 저장 (쓰레드에서는 토스트나 텍스트뷰 접근이 안되서 메인에서 쓰기위해)
+
 //                String json = new Gson().toJson(L_m);
 //                gson.fromJson(inmsg,getClass(List<Userdata>))
 //                Log.d(get_m[0].get;
-                message_List = L_m;
+
 //                uName = m.getName();
 //                uLat = m.getLat();
 //                uLng = m.getLng();
@@ -872,7 +880,7 @@ public class MainActivity extends AppCompatActivity
 
             return inmsg;
         }
-        public void disconnect()
+        public void disconnect() // 연결 종료 함수
         {
 
            // Logger.getLogger(this.getClass().getName()).;
@@ -889,10 +897,10 @@ public class MainActivity extends AppCompatActivity
 
 
     }
-    public String Jsonize(String name, Double lat,  Double lng)
+    public String Jsonize(String name, Double lat,  Double lng) // 데이터 받아서 JSON화 하는 함수 Data -> Gson -> json
     {
 
-        String json = new Gson().toJson(new Userdata(name,lat,lng));
+        String json = new Gson().toJson(new Userdata(name,lat,lng)); //Data -> Gson -> json
         Log.d("gson",json);
        // assertNotNull(json);
        // assertEquals(json,data);

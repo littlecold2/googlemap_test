@@ -16,7 +16,7 @@ import java.util.List;
  * Created by MIN on 2017-08-14.
  */
 
-public class DataParser {
+public class DataParser {// Google Direction APi 받아온거 파싱 (길찾기) //https://developers.google.com/maps/documentation/geocoding/start?hl=ko
 
     public List<List<HashMap<String, String>>> parse(JSONObject jObject) {
 
@@ -36,13 +36,13 @@ public class DataParser {
                 /** Traversing all legs */
                 for (int j = 0; j < jLegs.length(); j++) {
                     jSteps = ((JSONObject) jLegs.get(j)).getJSONArray("steps");
-                    HashMap<String,String> h_DD = new HashMap<>();
+                    HashMap<String,String> h_DD = new HashMap<>(); // 거리, 소요시간 저장할 해쉬맵(키,벨류 사용한다)
 
-                    JSONObject jDis = ((JSONObject)jLegs.get(i)).getJSONObject("distance");
-                    JSONObject jDur = ((JSONObject)jLegs.get(i)).getJSONObject("duration");
+                    JSONObject jDis = ((JSONObject)jLegs.get(i)).getJSONObject("distance"); // distance 키값 오브젝트 가져온다.
+                    JSONObject jDur = ((JSONObject)jLegs.get(i)).getJSONObject("duration"); // duration 키값 오브젝트 가져온다.
 
-                    h_DD.put("Distance",jDis.get("text").toString());
-                    h_DD.put("Duration",jDur.get("text").toString());
+                    h_DD.put("Distance",jDis.get("text").toString()); // Distance에서 text부분(거리가 얼마인지나와있는 부분) 가져와서 해쉬맵에 넣는다.
+                    h_DD.put("Duration",jDur.get("text").toString()); // Duration에서 text부분(소요시간이 얼마인지나와있는 부분) 가져와서 해쉬맵에 넣는다.
                     Log.d("d_parsing","DP:"+ h_DD.get("Distance"));
                     path.add(h_DD);
 
@@ -73,16 +73,16 @@ public class DataParser {
         }
         return routes;
     }
-    public List<String> R_geocoding(JSONObject jObject)
+    public List<String> R_geocoding(JSONObject jObject) // 구글 Google Maps Geocoding API 이용 파싱  // https://developers.google.com/maps/documentation/geocoding/start?hl=ko
     {
         List<String> f_a= new ArrayList<>();
         JSONArray jResults;
         JSONArray jAddress;
         try {
             jResults = jObject.getJSONArray("results");
-            jAddress = ((JSONObject)jResults.get(0)).getJSONArray("address_components");
-            f_a.add(((JSONObject)(jAddress.get(0))).get("long_name").toString()+" " +((JSONObject)(jAddress.get(1))).get("long_name").toString());
-            f_a.add(((JSONObject)jResults.get(0)).get("formatted_address").toString());
+            jAddress = ((JSONObject)jResults.get(0)).getJSONArray("address_components"); // 주소정보 가져와서 JSon 객체에 넣음
+            f_a.add(((JSONObject)(jAddress.get(0))).get("long_name").toString()+" " +((JSONObject)(jAddress.get(1))).get("long_name").toString()); // 그 객체에서 long_name부분 가져와서 리턴할 리스트에 넣는다.
+            f_a.add(((JSONObject)jResults.get(0)).get("formatted_address").toString()); // 비슷
             Log.d("R_g", f_a.get(0) );
 
         } catch (JSONException e) {
@@ -92,7 +92,7 @@ public class DataParser {
         return f_a;
     }
 
-    public List<List<String>> parse_DT(JSONObject jObject)
+    public List<List<String>> parse_DT(JSONObject jObject) // 안쓴다. 거리, 소요시간을 원래 여기서 파싱했는데, Google Distance Matrix Api 이용해서, 근데 Google Direction (맨위) 에서 뽑아 쓸수 있어서 위에서 뽑아 쓰는거로 변경,  공부는 많이 됬다.
     {
         JSONArray jRows;
         JSONArray jElements;
@@ -148,7 +148,7 @@ public class DataParser {
      * Method to decode polyline points
      * Courtesy : http://jeffreysambells.com/2010/05/27/decoding-polylines-from-google-maps-direction-api-with-java
      * */
-    private List<LatLng> decodePoly(String encoded) {
+    private List<LatLng> decodePoly(String encoded) { //  루트 그려주는 폴리라인 하는건데 걍 가져다 씀
 
         List<LatLng> poly = new ArrayList<>();
         int index = 0, len = encoded.length();
