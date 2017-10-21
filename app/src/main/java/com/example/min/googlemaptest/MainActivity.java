@@ -82,20 +82,18 @@ public class MainActivity extends AppCompatActivity
         OnMapReadyCallback,
         ActivityCompat.OnRequestPermissionsResultCallback{
 
-    private GoogleMap map;
-    private boolean mPermissionDenied = false;
+    private GoogleMap map; // 구글맵 사용 할 때 필요
+    private boolean mPermissionDenied = false; // gps 권한 체크
 
-    private Socket_Controller SC;
+    private Socket_Controller SC; // 소켓 부분 컨트롫 할 쓰레드 클래스 변수
 
-    private Location lastKnownLocation = null ;
+    private Location lastKnownLocation = null ; // gps에서 위치 정보 계속 받아서 저장
 
-    int sv_key=0;
-    int L_cnt=0;
-    int ccnt=0;
-    private String uName;
-    private Double uLat;
-    private Double uLng;
-    List<Userdata> message_List = new ArrayList<>();
+    int sv_key=0; // 서버 접속 한번만 하게 체크하는 변수
+    int L_cnt=0; // gps 추적 버튼 나오고 사라지게 하고 체크 할때 씀 걍 체크 용이었네
+    int ccnt=0; // 길찾기 라인 색 다르게 체크
+
+    List<Userdata> message_List = new ArrayList<>(); // 사용자들 위치 리스트 수신 받을 변수
 
     ArrayList<LatLng> MarkerPoints; // 마커 저장
     //로마
@@ -107,15 +105,14 @@ public class MainActivity extends AppCompatActivity
 //    private static final LatLngBounds BOUNDS_VIEW = new LatLngBounds(
 //            new LatLng(37.56, 126.97), new LatLng(37.628, 126.825));
     private static final LatLngBounds BOUNDS_VIEW = new LatLngBounds(
-            new LatLng(37.56, 126.98), new LatLng(37.57, 127.02));
+            new LatLng(37.56, 126.98), new LatLng(37.57, 127.02));     // 위치 정보 저장 테스트용이었음
 
-    TextView tv;
-    List<String> l_s_DD;
-    String msg;
-    private  int gps_cnt=0;
+    TextView tv; // 아래 텍스트 출력 부분 컨트롤
+    String msg; // 내정보 json 으로 바꿔서 저장할 변수 (서버로 보낸다 이거)
+    private  int gps_cnt=0; // gps 추적 컨트롤
 
-    private static final int PLACE_PICKER_REQUEST =1;
-    private static final int LOCATION_PERMISSION_REQUEST_CODE = 1;
+    private static final int PLACE_PICKER_REQUEST =1; // 위치검색 쓸 때
+    private static final int LOCATION_PERMISSION_REQUEST_CODE = 1; // 위치 권한 쓸때
 
 //    @Override
 //    protected void onPause() {
@@ -139,13 +136,11 @@ public class MainActivity extends AppCompatActivity
         FragmentManager fragmentManager = getFragmentManager();
         MapFragment mapFragment = (MapFragment)fragmentManager
                 .findFragmentById(R.id.map);
-        mapFragment.getMapAsync(this);
+        mapFragment.getMapAsync(this);  // 구글맵 프레그먼트 적용
 
 
         tv = (TextView) findViewById(R.id.DDtext);
-        l_s_DD = new ArrayList<>();
-        l_s_DD.clear();
-        MarkerPoints = new ArrayList<>();
+        MarkerPoints = new ArrayList<>(); // 마커 저장 시켜놓을 리스트
         MarkerPoints.clear();
 //        SC = new Socket_Controller("13.124.63.18",9000);
 //        SC.run();
@@ -167,7 +162,7 @@ public class MainActivity extends AppCompatActivity
             public void afterTextChanged(Editable s) {
 
             }
-        });
+        }); //텍스트뷰 와쳐
 //        try {
 //            ServerSocket ss = new ServerSocket(9000);
 //            ss.getInetAddress()
@@ -184,14 +179,14 @@ public class MainActivity extends AppCompatActivity
 //
 
     }
-    @Override
+    @Override // 구글 맵 컨트롤 부분
     public void onMapReady(final GoogleMap gMap) {
         map = gMap;
-        map.setOnMyLocationButtonClickListener(this);
-        enableMyLocation();
+        map.setOnMyLocationButtonClickListener(this); // gps 버튼 활성화
+        enableMyLocation(); // 내 위치 활성화
 
 
-
+        // 예제로 마커 추가해 봤던거
         final Marker a = map.addMarker(new MarkerOptions()
                 .position(M1)
                 .draggable(true)
@@ -200,27 +195,27 @@ public class MainActivity extends AppCompatActivity
         a.setDraggable(true);
         //  위에 말풍선 표시한거 보여주도록 호출
         a.showInfoWindow();
-//마커 클릭 해을떄 리스너
+        //마커 클릭 해을떄 리스너
         map.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
-            @Override
+            @Override //마커 클릭시
             public boolean onMarkerClick(Marker marker) {
 //                if (marker.equals(a)) // 이렇게 객체 비교 해야된다.
 //                {
-                Toast.makeText(getApplicationContext(),marker.getTitle(),Toast.LENGTH_SHORT).show();
+                Toast.makeText(getApplicationContext(),marker.getTitle(),Toast.LENGTH_SHORT).show(); // 마커 클릭 시 걔 이름 출력
 //                }
                 // 토스트나 알럿 메세지...
                 return false;
             }
         });
 
-        // 맵 클릭 리스너
+        // 맵 클릭 리스너 // 맵클릭시 마커 찍고 역 지오코딩함수에 위치정보 넘겨줘서 그 위치 정보 받아와서 마커 정보에 추가하게 함
         map.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
             @Override
             public void onMapClick(LatLng latLng) {
 //               pickMark(latLng,"a","a");
-                String url = getUrl(latLng);
-                fetch_RgeoUrl fUrl = new fetch_RgeoUrl();
-                fUrl.execute(url,Double.toString(latLng.latitude),Double.toString(latLng.longitude));
+                String url = getUrl(latLng); // 위치정보 주고 넘겨줄 url형식으로 받아옴
+                fetch_RgeoUrl fUrl = new fetch_RgeoUrl(); // url fetch 할 클래스 생성
+                fUrl.execute(url,Double.toString(latLng.latitude),Double.toString(latLng.longitude)); // url fetch 할때 위치정보 넘겨줌
                 Log.d("R_g",Double.toString(latLng.latitude)+" " +Double.toString(latLng.longitude));
             }
         });
@@ -249,25 +244,26 @@ public class MainActivity extends AppCompatActivity
         map.animateCamera(CameraUpdateFactory.zoomTo(15));
 
        // map.setPadding(300,300,300,300); // left, top, right, bottom //버튼이나 그런거 위치 한정?
-        map.getUiSettings().setZoomControlsEnabled(true);
+        map.getUiSettings().setZoomControlsEnabled(true); // 줌 버튼 가능하게
 
        //  map.setMapType(GoogleMap.MAP_TYPE_HYBRID); // 지도 유형 변경
-        Button button1 = (Button) findViewById(R.id.button1);
-        Button button2 = (Button) findViewById(R.id.button2);
-        Button button3 = (Button) findViewById(R.id.button3);
+        Button button1 = (Button) findViewById(R.id.button1); // 대중교통 길찾기 버튼
+        Button button2 = (Button) findViewById(R.id.button2); // clear 버튼
+        Button button3 = (Button) findViewById(R.id.button3); // 위치검색 버튼
 
         button1.setOnClickListener(new Button.OnClickListener()
         { @Override
             public void onClick(View view)
-            {
-                SC = new Socket_Controller("13.124.63.18",9000);
-                SC.start();
+            { // 길찾기 버튼
+          //      SC = new Socket_Controller("13.124.63.18",9000);
+            //    SC.start();
 
+                // 찍혀있는 마커 차례대로 두개씩 대중교통 길찾기 실행 (ex, 0->1,  1->2)
                 for(int i=0;i<MarkerPoints.size()-1;i++) {
                     tv.setText("");
-                    String url = getUrl(MarkerPoints.get(i), MarkerPoints.get(i+1));
-                    fetchUrl fUrl = new fetchUrl();
-                    fUrl.execute(url);
+                    String url = getUrl(MarkerPoints.get(i), MarkerPoints.get(i+1)); // 마커 위치정보 넘겨줘서 맞는 url형식 만듬
+                    fetchUrl fUrl = new fetchUrl(); // fetch할 클래스 생성
+                    fUrl.execute(url); // url fetch
                 }
 
 
@@ -277,11 +273,11 @@ public class MainActivity extends AppCompatActivity
         button2.setOnClickListener(new Button.OnClickListener()
         { @Override
         public void onClick(View view)
-        {
-            MarkerPoints.clear();
-            map.clear();
-            l_s_DD.clear();
-            tv.setText("Distance, Duration");
+        { // 클리어 버튼
+            MarkerPoints.clear(); // 마커 저장 해논 리스트 클리어
+            map.clear(); // 맵에있는 오브젝트 클리어
+            tv.setHint("Distance, Duration");
+
 
             if(L_cnt==0) {
                 L_cnt++;
@@ -299,7 +295,7 @@ public class MainActivity extends AppCompatActivity
         button3.setOnClickListener(new Button.OnClickListener()
         { @Override
         public void onClick(View view)
-        {
+        { //위치검색 (PlacePicker)
             try {
                 PlacePicker.IntentBuilder intentBuilder = new PlacePicker.IntentBuilder();
                 intentBuilder.setLatLngBounds(BOUNDS_VIEW);
@@ -314,15 +310,15 @@ public class MainActivity extends AppCompatActivity
         });
     }
 
-    private void pickMark(final LatLng LL,String name, String address)
+    private void pickMark(final LatLng LL,String name, String address) // 위도 경도, 이름 주소 받아서 마커 찍는 함수
     {
-        MarkerOptions markerOptions = new MarkerOptions();
-        markerOptions.position(LL);
+        MarkerOptions markerOptions = new MarkerOptions(); // 옵션 설정 해놓을 변수
+        markerOptions.position(LL); // 위치 적용
 //        markerOptions.title(String.format(Locale.KOREA,"%.3f",LL.latitude)+","+String.format(Locale.KOREA,"%.3f",LL.longitude));
-        markerOptions.title(name);
-        markerOptions.snippet(address.substring(0,40));
-//        markerOptions.snippet(address);
-        markerOptions.draggable(true);
+        markerOptions.title(name); // 이름
+//        markerOptions.snippet(address.substring(0,20)); // 주소 넣음
+        markerOptions.snippet(address); // 주소 넣음
+        markerOptions.draggable(true); // 드래그 가능하도록
 
         //색 다르게
         if(MarkerPoints.size()==0)
@@ -338,8 +334,8 @@ public class MainActivity extends AppCompatActivity
 
         }
         map.addMarker(markerOptions).setDraggable(true);
-        map.addMarker(markerOptions).showInfoWindow();
-        MarkerPoints.add(LL);
+        map.addMarker(markerOptions).showInfoWindow(); // 맵에 추가
+        MarkerPoints.add(LL); // 위치정보 마커 리스트에 추가
     } // pickMark
 
 
