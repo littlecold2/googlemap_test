@@ -3,8 +3,11 @@ package com.example.min.googlemaptest;
 import android.Manifest;
 import android.app.Activity;
 import android.app.FragmentManager;
+import android.app.IntentService;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.location.Criteria;
@@ -13,6 +16,7 @@ import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.AsyncTask;
 import android.os.Build;
+import android.os.IBinder;
 import android.os.StrictMode;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
@@ -76,6 +80,9 @@ import static android.os.StrictMode.setThreadPolicy;
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertNotNull;
 
+import com.example.min.googlemaptest.ClientService.Mybinder;
+
+
 public class MainActivity extends AppCompatActivity
         implements
         GoogleMap.OnMyLocationButtonClickListener,
@@ -85,7 +92,7 @@ public class MainActivity extends AppCompatActivity
     private GoogleMap map; // 구글맵 사용 할 때 필요
     private boolean mPermissionDenied = false; // gps 권한 체크
 
-    private Socket_Controller SC; // 소켓 부분 컨트롫 할 쓰레드 클래스 변수
+   // private Socket_Controller SC; // 소켓 부분 컨트롫 할 쓰레드 클래스 변수
 
     private Location lastKnownLocation = null ; // gps에서 위치 정보 계속 받아서 저장
 
@@ -93,7 +100,7 @@ public class MainActivity extends AppCompatActivity
     int L_cnt=0; // gps 추적 버튼 나오고 사라지게 하고 체크 할때 씀 걍 체크 용이었네
     int ccnt=0; // 길찾기 라인 색 다르게 체크
 
-    List<Userdata> message_List = new ArrayList<>(); // 사용자들 위치 리스트 수신 받을 변수
+//    List<Userdata> message_List = new ArrayList<>(); // 사용자들 위치 리스트 수신 받을 변수
 
     ArrayList<LatLng> MarkerPoints; // 마커 저장
     //로마
@@ -109,10 +116,29 @@ public class MainActivity extends AppCompatActivity
 
     TextView tv; // 아래 텍스트 출력 부분 컨트롤
     String msg; // 내정보 json 으로 바꿔서 저장할 변수 (서버로 보낸다 이거)
+
     private  int gps_cnt=0; // gps 추적 컨트롤
 
     private static final int PLACE_PICKER_REQUEST =1; // 위치검색 쓸 때
     private static final int LOCATION_PERMISSION_REQUEST_CODE = 1; // 위치 권한 쓸때
+
+    Intent serviceIntent;
+    ClientService cs;
+    boolean isService = false;
+
+    ServiceConnection conn = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            Mybinder mb =(Mybinder) service;
+            cs = mb.getService();
+            isService =true;
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+            isService = false;
+        }
+    };
 
 //    @Override
 //    protected void onPause() {
@@ -142,6 +168,7 @@ public class MainActivity extends AppCompatActivity
         tv = (TextView) findViewById(R.id.DDtext);
         MarkerPoints = new ArrayList<>(); // 마커 저장 시켜놓을 리스트
         MarkerPoints.clear();
+        serviceIntent = new Intent(this,ClientService.class);
 //        SC = new Socket_Controller("13.124.63.18",9000);
 //        SC.run();
 
@@ -179,6 +206,28 @@ public class MainActivity extends AppCompatActivity
 //
 
     }
+
+//    @Override
+//    protected void onNewIntent(Intent intent) {
+//
+//        String inmsg;
+//        List<Userdata> message_List = new ArrayList<>();
+//        Gson gson = new Gson();
+//
+//        if(intent!=null)
+//        {
+//            inmsg = intent.getStringExtra("inmsg_list");
+//            message_List = gson.fromJson(inmsg, new TypeToken<ArrayList<Userdata>>() {}.getType()); // 서버에서 받은 메시지(모든 클라이언트의 이름,위치 메시지 리스트)를 JSON->Gosn-> ArrayList<Userdata>로 해서 저장
+//            tv.setText("");
+//            for(Userdata ud:message_List) {
+//                tv.append("name: " + ud.getName() + " lat: " + ud.getLat() + " lng: " + ud.getLng()+"\n");
+//            }
+//            Toast.makeText(getApplicationContext(),"메시지 받음",Toast.LENGTH_SHORT).show();
+//        }
+//
+//        super.onNewIntent(intent);
+//    }
+
     @Override // 구글 맵 컨트롤 부분
     public void onMapReady(final GoogleMap gMap) {
         map = gMap;
@@ -380,7 +429,9 @@ public class MainActivity extends AppCompatActivity
     LocationListener locationListener = new LocationListener() {
         @Override
         public void onLocationChanged(Location location) {  // 위치정보 바뀔때마다 이 함수 불러옴
-
+            String inmsg ="";
+            List<Userdata> message_List = new ArrayList<>();
+            Gson gson = new Gson();
             LocationManager lm = (LocationManager)getSystemService(Context.LOCATION_SERVICE);
             // Get the last location.
             lastKnownLocation = location; // 업데이트 된 주소 저장
@@ -391,9 +442,12 @@ public class MainActivity extends AppCompatActivity
                     10, // 최소 거리 10미터
                     locationListener
             );
-            if(SC.s==null) // 서버와 연결 안됬으면 현재 위치 텍스트뷰에
+            if(!isService ) // 서버와 연결 안됬으면 현재 위치 텍스트뷰에
                 tv.setText(String.format(Locale.KOREA,"%.3f",lastKnownLocation.getLatitude())+ " , "+ String.format(Locale.KOREA,"%.3f",lastKnownLocation.getLongitude()));
-            else { // 서버 연결 됫으면 메세지 받은 걸 텍스트 뷰에 뿌림
+            else if(cs.getkey()){ // 서버 연결 됫으면 메세지 받은 걸 텍스트 뷰에 뿌림
+                message_List = cs.getInmsg();
+                Log.d("ddddd",inmsg);
+//                message_List = gson.fromJson(inmsg, new TypeToken<ArrayList<Userdata>>() {}.getType()); // 서버에서 받은 메시지(모든 클라이언트의 이름,위치 메시지 리스트)를 JSON->Gosn-> ArrayList<Userdata>로 해서 저장
                 tv.setText("");
                 for(Userdata ud:message_List) {
                     tv.append("name: " + ud.getName() + " lat: " + ud.getLat() + " lng: " + ud.getLng()+"\n");
@@ -402,7 +456,13 @@ public class MainActivity extends AppCompatActivity
             }
            // Toast.makeText(getApplicationContext(), String.format(Locale.KOREA,"%.3f",lastKnownLocation.getLatitude())+ " , "+ String.format(Locale.KOREA,"%.3f",lastKnownLocation.getLongitude()), Toast.LENGTH_SHORT).show();
             if(sv_key==0&& lastKnownLocation.hasAltitude()) { // lastKnownLocation이 위치를 받아왔고  키가 0이면 소켓통신 스타트
-                SC.start(); // 소켓통신 관련 쓰레드함수 시작
+
+                msg = Jsonize(Build.USER,lastKnownLocation.getLatitude(),lastKnownLocation.getLongitude());
+             //   serviceIntent.putExtra("outmsg",msg);
+              //  startService(serviceIntent);
+                cs.setOutMsg(msg);
+
+              //  SC.start(); // 소켓통신 관련 쓰레드함수 시작
 
                 //msg=Jsonize(Build.USER,lastKnownLocation.getLatitude(),lastKnownLocation.getLongitude());
                 sv_key=1;
@@ -440,7 +500,9 @@ public class MainActivity extends AppCompatActivity
         lm.requestLocationUpdates(LocationManager.NETWORK_PROVIDER,0,0,locationListener);
         if(gps_cnt==0) {
             Toast.makeText(this, "GPS 추적 ON", Toast.LENGTH_SHORT).show();
-            SC = new Socket_Controller("13.124.63.18",9000);
+            Intent intent = new Intent(MainActivity.this,ClientService.class);
+            bindService(intent,conn,Context.BIND_AUTO_CREATE);
+           // SC = new Socket_Controller("13.124.63.18",9000);
             gps_cnt++;
         }
         else // gps끌때 소켓통신 종료, 추적 종료
@@ -449,7 +511,9 @@ public class MainActivity extends AppCompatActivity
          //   SC.interrupt();
             Toast.makeText(this, "GPS 추적 OFF", Toast.LENGTH_SHORT).show();
      //       SC.interrupt();
-            SC.disconnect();
+            stopService(serviceIntent);
+
+          //  SC.disconnect();
             sv_key=0;
             gps_cnt=0;
 
@@ -741,7 +805,21 @@ public class MainActivity extends AppCompatActivity
     }// ParserTask
 // url 보내고 받아서 파싱 하는 부분 끝
 
+    public String Jsonize(String name, Double lat,  Double lng) // 데이터 받아서 JSON화 하는 함수 Data -> Gson -> json
+    {
 
+        String json = new Gson().toJson(new Userdata(name,lat,lng)); //Data -> Gson -> json
+        Log.d("gson",json);
+        // assertNotNull(json);
+        // assertEquals(json,data);
+
+        // Userdata obj = new Gson().fromJson(data,Userdata.class);
+        //Log.d("gson",obj.getName());
+
+        //assertEquals(Build.USER,obj.getName());
+        return json;
+
+    }
 
 }//main
 
