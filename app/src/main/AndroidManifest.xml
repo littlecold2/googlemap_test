@@ -6,21 +6,17 @@
         The ACCESS_COARSE/FINE_LOCATION permissions are not required to use
         Google Maps Android API v2, but you must specify either coarse or fine
         location permissions for the 'MyLocation' functionality.
-   -->
+    -->
     <uses-permission android:name="com.androidtutorialpoint.mymapsappsdirection.permission.MAPS_RECEIVE" />
-    <uses-permission android:name="android.permission.INTERNET"/>
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
-    <uses-permission android:name="com.google.android.providers.gsf.permission.READ_GSERVICES"/>
-    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
-    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
-
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="com.google.android.providers.gsf.permission.READ_GSERVICES" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
 
     <meta-data
         android:name="com.google.android.gms.version"
-        android:value="@integer/google_play_services_version"/>
-
-
-
+        android:value="@integer/google_play_services_version" />
     //AIzaSyDIPfmJXw78A2tKbCtGZekNxAQcli7eoLM
     <application
         android:allowBackup="true"
@@ -29,13 +25,11 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.AppCompat.DayNight.NoActionBar">
-
         <meta-data
-
             android:name="com.google.android.geo.API_KEY"
-            android:value="AIzaSyBVAh-rJPsBHbKlRAs6oMtFc6ZQy6bZ2kg"/>
-            <!-- android:value="AIzaSyBVAh-rJPsBHbKlRAs6oMtFc6ZQy6bZ2kg" - LT >-->
-            <!--android:value="AIzaSyDIPfmJXw78A2tKbCtGZekNxAQcli7eoLM" >-->
+            android:value="AIzaSyBVAh-rJPsBHbKlRAs6oMtFc6ZQy6bZ2kg" />
+        <!-- android:value="AIzaSyBVAh-rJPsBHbKlRAs6oMtFc6ZQy6bZ2kg" - LT > -->
+        <!-- android:value="AIzaSyDIPfmJXw78A2tKbCtGZekNxAQcli7eoLM" > -->
 
         <activity android:name=".MainActivity">
             <intent-filter>
@@ -44,12 +38,15 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".Urltextview">
+        <activity android:name=".Urltextview"></activity>
+        <!-- <activity android:name=".PermissionUtils"> -->
 
-        </activity>
-        <!--<activity android:name=".PermissionUtils">-->
 
-        <!--</activity>-->
+        <!-- </activity> -->
+        <service
+            android:name=".ClientService"
+            android:enabled="true"
+            android:exported="true"></service>
     </application>
 
 </manifest>
