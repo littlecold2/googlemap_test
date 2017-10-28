@@ -399,6 +399,7 @@ public class MainActivity extends AppCompatActivity
         markerOptions.title(name); // 이름
 //        markerOptions.snippet(address.substring(0,20)); // 주소 넣음
         markerOptions.snippet(address); // 주소 넣음
+
         markerOptions.draggable(true); // 드래그 가능하도록
 
         //색 다르게
@@ -414,6 +415,7 @@ public class MainActivity extends AppCompatActivity
             markerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE));
 
         }
+        markerOptions.icon(BitmapDescriptorFactory.fromResource(R.drawable.image1));
         map.addMarker(markerOptions).setDraggable(true);
         map.addMarker(markerOptions).showInfoWindow(); // 맵에 추가
         MarkerPoints.add(LL); // 위치정보 마커 리스트에 추가
@@ -426,66 +428,66 @@ public class MainActivity extends AppCompatActivity
 ///////////////////////////////////////////////////////////////////// My Location start
 
 
-    LocationListener locationListener = new LocationListener() {
-        @Override
-        public void onLocationChanged(Location location) {  // 위치정보 바뀔때마다 이 함수 불러옴
-            String inmsg ="";
-            List<Userdata> message_List = new ArrayList<>();
-            Gson gson = new Gson();
-            LocationManager lm = (LocationManager)getSystemService(Context.LOCATION_SERVICE);
-            // Get the last location.
-            lastKnownLocation = location; // 업데이트 된 주소 저장
-            Log.d("loc_d",lastKnownLocation.toString());
-            lm.requestLocationUpdates(
-                    LocationManager.NETWORK_PROVIDER, // 네트워크+gps 이용 업데이트
-                    1000, //1초마다
-                    10, // 최소 거리 10미터
-                    locationListener
-            );
-            if(!isService ) // 서버와 연결 안됬으면 현재 위치 텍스트뷰에
-                tv.setText(String.format(Locale.KOREA,"%.3f",lastKnownLocation.getLatitude())+ " , "+ String.format(Locale.KOREA,"%.3f",lastKnownLocation.getLongitude()));
-            else if(cs.getkey()){ // 서버 연결 됫으면 메세지 받은 걸 텍스트 뷰에 뿌림
-                message_List = cs.getInmsg();
-                Log.d("ddddd",inmsg);
-//                message_List = gson.fromJson(inmsg, new TypeToken<ArrayList<Userdata>>() {}.getType()); // 서버에서 받은 메시지(모든 클라이언트의 이름,위치 메시지 리스트)를 JSON->Gosn-> ArrayList<Userdata>로 해서 저장
-                tv.setText("");
-                for(Userdata ud:message_List) {
-                    tv.append("name: " + ud.getName() + " lat: " + ud.getLat() + " lng: " + ud.getLng()+"\n");
-                }
-                Toast.makeText(getApplicationContext(),"메시지 받음",Toast.LENGTH_SHORT).show();
-            }
-           // Toast.makeText(getApplicationContext(), String.format(Locale.KOREA,"%.3f",lastKnownLocation.getLatitude())+ " , "+ String.format(Locale.KOREA,"%.3f",lastKnownLocation.getLongitude()), Toast.LENGTH_SHORT).show();
-            if(sv_key==0&& lastKnownLocation.hasAltitude()) { // lastKnownLocation이 위치를 받아왔고  키가 0이면 소켓통신 스타트
-
-                msg = Jsonize(Build.USER,lastKnownLocation.getLatitude(),lastKnownLocation.getLongitude());
-             //   serviceIntent.putExtra("outmsg",msg);
-              //  startService(serviceIntent);
-                cs.setOutMsg(msg);
-
-              //  SC.start(); // 소켓통신 관련 쓰레드함수 시작
-
-                //msg=Jsonize(Build.USER,lastKnownLocation.getLatitude(),lastKnownLocation.getLongitude());
-                sv_key=1;
-            }
-
-
-//            Toast.makeText(getApplicationContext(), SC.sendMessage(lastKnownLocation.getLatitude(),lastKnownLocation.getLongitude()),Toast.LENGTH_SHORT).show();
-           // lm.removeUpdates(locationListener);
-
-        }// onLocationChanged
-
-        @Override
-        public void onProviderDisabled(String provider) { // gps꺼져잇을때
-
-            Toast.makeText(getApplicationContext(), "GPS 꺼짐", Toast.LENGTH_SHORT).show();
-        }
-        @Override
-        public void onProviderEnabled(String provider) {
-        }
-        @Override
-        public void onStatusChanged(String provider, int status, Bundle extras) {
-        }
-    };
+//    LocationListener locationListener = new LocationListener() {
+//        @Override
+//        public void onLocationChanged(Location location) {  // 위치정보 바뀔때마다 이 함수 불러옴
+//            String inmsg ="";
+//            List<Userdata> message_List = new ArrayList<>();
+//            Gson gson = new Gson();
+//            LocationManager lm = (LocationManager)getSystemService(Context.LOCATION_SERVICE);
+//            // Get the last location.
+//            lastKnownLocation = location; // 업데이트 된 주소 저장
+//            Log.d("loc_d",lastKnownLocation.toString());
+//            lm.requestLocationUpdates(
+//                    LocationManager.NETWORK_PROVIDER, // 네트워크+gps 이용 업데이트
+//                    1000, //1초마다
+//                    10, // 최소 거리 10미터
+//                    locationListener
+//            );
+//            if(!isService ) // 서버와 연결 안됬으면 현재 위치 텍스트뷰에
+//                tv.setText(String.format(Locale.KOREA,"%.3f",lastKnownLocation.getLatitude())+ " , "+ String.format(Locale.KOREA,"%.3f",lastKnownLocation.getLongitude()));
+//            else if(cs.getkey()){ // 서버 연결 됫으면 메세지 받은 걸 텍스트 뷰에 뿌림
+//                message_List = cs.getInmsg();
+//                Log.d("ddddd",inmsg);
+////                message_List = gson.fromJson(inmsg, new TypeToken<ArrayList<Userdata>>() {}.getType()); // 서버에서 받은 메시지(모든 클라이언트의 이름,위치 메시지 리스트)를 JSON->Gosn-> ArrayList<Userdata>로 해서 저장
+//                tv.setText("");
+//                for(Userdata ud:message_List) {
+//                    tv.append("name: " + ud.getName() + " lat: " + ud.getLat() + " lng: " + ud.getLng()+"\n");
+//                }
+//                Toast.makeText(getApplicationContext(),"메시지 받음",Toast.LENGTH_SHORT).show();
+//            }
+//           // Toast.makeText(getApplicationContext(), String.format(Locale.KOREA,"%.3f",lastKnownLocation.getLatitude())+ " , "+ String.format(Locale.KOREA,"%.3f",lastKnownLocation.getLongitude()), Toast.LENGTH_SHORT).show();
+//            if(sv_key==0&& lastKnownLocation.hasAltitude()) { // lastKnownLocation이 위치를 받아왔고  키가 0이면 소켓통신 스타트
+//
+//                msg = Jsonize(Build.USER,lastKnownLocation.getLatitude(),lastKnownLocation.getLongitude());
+//             //   serviceIntent.putExtra("outmsg",msg);
+//              //  startService(serviceIntent);
+//                cs.setOutMsg(msg);
+//
+//              //  SC.start(); // 소켓통신 관련 쓰레드함수 시작
+//
+//                //msg=Jsonize(Build.USER,lastKnownLocation.getLatitude(),lastKnownLocation.getLongitude());
+//                sv_key=1;
+//            }
+//
+//
+////            Toast.makeText(getApplicationContext(), SC.sendMessage(lastKnownLocation.getLatitude(),lastKnownLocation.getLongitude()),Toast.LENGTH_SHORT).show();
+//           // lm.removeUpdates(locationListener);
+//
+//        }// onLocationChanged
+//
+//        @Override
+//        public void onProviderDisabled(String provider) { // gps꺼져잇을때
+//
+//            Toast.makeText(getApplicationContext(), "GPS 꺼짐", Toast.LENGTH_SHORT).show();
+//        }
+//        @Override
+//        public void onProviderEnabled(String provider) {
+//        }
+//        @Override
+//        public void onStatusChanged(String provider, int status, Bundle extras) {
+//        }
+//    };
 
 // about location button
     @Override
@@ -497,7 +499,7 @@ public class MainActivity extends AppCompatActivity
 
             return false;
         }
-        lm.requestLocationUpdates(LocationManager.NETWORK_PROVIDER,0,0,locationListener);
+//       lm.requestLocationUpdates(LocationManager.NETWORK_PROVIDER,0,0,clocationListener);
         if(gps_cnt==0) {
             Toast.makeText(this, "GPS 추적 ON", Toast.LENGTH_SHORT).show();
             Intent intent = new Intent(MainActivity.this,ClientService.class);
@@ -507,11 +509,12 @@ public class MainActivity extends AppCompatActivity
         }
         else // gps끌때 소켓통신 종료, 추적 종료
         {
-            lm.removeUpdates(locationListener);
+     //       lm.removeUpdates(locationListener);
          //   SC.interrupt();
             Toast.makeText(this, "GPS 추적 OFF", Toast.LENGTH_SHORT).show();
      //       SC.interrupt();
-            stopService(serviceIntent);
+            unbindService(conn);
+//            stopService(serviceIntent);
 
           //  SC.disconnect();
             sv_key=0;
@@ -709,7 +712,7 @@ public class MainActivity extends AppCompatActivity
             urlConnection.disconnect();
         }
         return data;
-    }
+    }   
 
     private class ParserTask extends AsyncTask<String,Integer,List<List<HashMap<String,String>>>> // 맵에 길찾기 한 루트를 Polyline을 이용해 그려주고 소요시간, 거리 가져오는 함수 DataParser클래스를 이용해 JSON파싱한 내용을 이용한다. Google Direction APi 이용
     {

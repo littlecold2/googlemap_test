@@ -1,13 +1,18 @@
 package com.example.min.googlemaptest;
 
 import android.app.Service;
+import android.content.Context;
 import android.content.Intent;
+import android.location.Location;
+import android.location.LocationListener;
+import android.location.LocationManager;
 import android.os.Binder;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.support.annotation.IntDef;
 import android.util.Log;
+import android.widget.Toast;
 
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MapStyleOptions;
@@ -40,10 +45,17 @@ public class ClientService extends Service implements Runnable {
     Intent myintent;
     Thread myThread;
     boolean key=false;
-   private String j_inmsg=""; // 받은 메시지 저장
-   private String j_outmsg="";
+    boolean key2=false;
+    private String j_inmsg=""; // 받은 메시지 저장
+    private String j_outmsg="";
 
     IBinder mBinder = new Mybinder();
+    public LocationManager locationManager;
+    public MyLocationListener listener;
+
+
+    private Location lastKnownLocation = null ; // gps에서 위치 정보 계속 받아서 저장
+
 
     class Mybinder extends Binder {
         ClientService getService(){
@@ -52,23 +64,21 @@ public class ClientService extends Service implements Runnable {
     }
 
 
-    public ClientService(String ip,int port ) {
-        a_targetIp = ip;
-        a_targetPort = port;
-        Log.d("D_socket", a_targetIp+ " " +String.format(Locale.KOREA,"%d",a_targetPort));
-
-    }
-    public ClientService() {
-    }
     public void onCreate() {
         super.onCreate();
+        locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+        listener = new MyLocationListener();
+        locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 4000, 0, listener);
+       // locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 4000, 0, listener);
 
-        // 스레드를 이용해 반복하여 로그를 출력합니다.
         myThread= new Thread(this);
         myThread.start();
     }
+
+
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+
 
         if(intent==null) {
             Log.d("SVC","strcmd");
@@ -99,6 +109,8 @@ public class ClientService extends Service implements Runnable {
         Log.d("SVC","destroy");
         try {
             s.close();
+            locationManager.removeUpdates(listener);
+
             myThread.interrupt();
 
         } catch (IOException e) {
@@ -118,9 +130,11 @@ public class ClientService extends Service implements Runnable {
             s.close(); // 끝날때 소켓 닫음
         }
 
+
+
+
         public void run() // 쓰레드 시작부분
         {
-
             Log.d("SVC", a_targetIp+ " " +String.format(Locale.KOREA,"%d",a_targetPort));
             connectServer(a_targetIp,a_targetPort); // 서버에 연결 하는 함수 받아온 ip.port 넘겨줌
 
@@ -131,7 +145,14 @@ public class ClientService extends Service implements Runnable {
                     //    Thread.sleep(3000);
 //                    Log.d("D_socket","lklt: "+lastKnownLocation);
                     Log.d("SVC", "msging");
-                    sendMessage(); // 서버에 현재 위치정보 담아서 보냄
+                    if(key2)
+                        sendMessage(); // 서버에 현재 위치정보 담아서 보냄
+                    else
+                        try {
+                            Thread.sleep(1000);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
                     //  sendMessage(12131.13131,222.123213);
                     //} catch (InterruptedException e) {
                     //   e.printStackTrace();
@@ -167,7 +188,7 @@ public class ClientService extends Service implements Runnable {
                 // outMsg.println(Build.USER);
                 Log.d("D_socket", Build.USER);
 
-               Thread.sleep(10000); // 서버연결 됬을시 3초정도 쉼
+              // Thread.sleep(10000); // 서버연결 됬을시 3초정도 쉼
 //            m.setId(v.id);
 //            m.setType("login");
 
@@ -223,7 +244,7 @@ public class ClientService extends Service implements Runnable {
 
                 message_List= gson.fromJson(j_inmsg, new TypeToken<ArrayList<Userdata>>() {}.getType()); // 서버에서 받은 메시지(모든 클라이언트의 이름,위치 메시지 리스트)를 JSON->Gosn-> ArrayList<Userdata>로 해서 저장
                 key=true;
-                Log.d("SCV",j_inmsg);
+                Log.d("SCV","j_inmsg: "+j_inmsg);
               //  message_List = L_m; // 전역변수에 그 받은 리스트 데이터 저장 (쓰레드에서는 토스트나 텍스트뷰 접근이 안되서 메인에서 쓰기위해)
 
 
@@ -261,5 +282,88 @@ public class ClientService extends Service implements Runnable {
 
 
 
+    public String Jsonize(String name, Double lat,  Double lng) // 데이터 받아서 JSON화 하는 함수 Data -> Gson -> json
+    {
 
+        String json = new Gson().toJson(new Userdata(name,lat,lng)); //Data -> Gson -> json
+        Log.d("gson",json);
+        // assertNotNull(json);
+        // assertEquals(json,data);
+
+        // Userdata obj = new Gson().fromJson(data,Userdata.class);
+        //Log.d("gson",obj.getName());
+
+        //assertEquals(Build.USER,obj.getName());
+        return json;
+
+    }
+
+    public class MyLocationListener implements LocationListener
+    {
+
+        @Override
+        public void onLocationChanged(Location location) {
+            String inmsg ="";
+            List<Userdata> message_List = new ArrayList<>();
+            Gson gson = new Gson();
+            LocationManager lm = (LocationManager)getSystemService(Context.LOCATION_SERVICE);
+            // Get the last location.
+            lastKnownLocation = location; // 업데이트 된 주소 저장
+            Log.d("loc_d",lastKnownLocation.toString());
+            lm.requestLocationUpdates(
+                    LocationManager.NETWORK_PROVIDER, // 네트워크+gps 이용 업데이트
+                    1000, //1초마다
+                    10, // 최소 거리 10미터
+                    listener
+            );
+            if(s==null) // 서버와 연결 안됬으면 현재 위치 텍스트뷰에
+                Log.d("CSV","not connect");
+              //  tv.setText(String.format(Locale.KOREA,"%.3f",lastKnownLocation.getLatitude())+ " , "+ String.format(Locale.KOREA,"%.3f",lastKnownLocation.getLongitude()));
+            else { // 서버 연결 됫으면 메세지 받은 걸 텍스트 뷰에 뿌림
+              //  message_List = cs.getInmsg();
+                Log.d("ddddd",inmsg);
+               // message_List = gson.fromJson(inmsg, new TypeToken<ArrayList<Userdata>>() {}.getType()); // 서버에서 받은 메시지(모든 클라이언트의 이름,위치 메시지 리스트)를 JSON->Gosn-> ArrayList<Userdata>로 해서 저장
+//                tv.setText("");
+                for(Userdata ud:message_List) {
+                    Log.d("CSV","list: "+"name: " + ud.getName() + " lat: " + ud.getLat() + " lng: " + ud.getLng()+"\n");
+  //                  tv.append("name: " + ud.getName() + " lat: " + ud.getLat() + " lng: " + ud.getLng()+"\n");
+                }
+                Toast.makeText(getApplicationContext(),"메시지 받음",Toast.LENGTH_SHORT).show();
+            }
+            // Toast.makeText(getApplicationContext(), String.format(Locale.KOREA,"%.3f",lastKnownLocation.getLatitude())+ " , "+ String.format(Locale.KOREA,"%.3f",lastKnownLocation.getLongitude()), Toast.LENGTH_SHORT).show();
+            if( lastKnownLocation.hasAltitude()) { // lastKnownLocation이 위치를 받아왔고  키가 0이면 소켓통신 스타트
+
+                j_outmsg = Jsonize(Build.USER,lastKnownLocation.getLatitude(),lastKnownLocation.getLongitude());
+                key2=true;
+                //   serviceIntent.putExtra("outmsg",msg);
+                //  startService(serviceIntent);
+                //cs.setOutMsg(msg);
+
+                //  SC.start(); // 소켓통신 관련 쓰레드함수 시작
+
+                //msg=Jsonize(Build.USER,lastKnownLocation.getLatitude(),lastKnownLocation.getLongitude());
+                //sv_key=1;
+            }
+
+
+//            Toast.makeText(getApplicationContext(), SC.sendMessage(lastKnownLocation.getLatitude(),lastKnownLocation.getLongitude()),Toast.LENGTH_SHORT).show();
+            // lm.removeUpdates(locationListener);
+
+        }
+
+        @Override
+        public void onStatusChanged(String provider, int status, Bundle extras) {
+
+        }
+
+        @Override
+        public void onProviderEnabled(String provider) {
+
+        }
+
+        @Override
+        public void onProviderDisabled(String provider) {
+
+        }
+    }
 }
